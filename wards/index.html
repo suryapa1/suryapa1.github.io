@@ -164,6 +164,7 @@ const PAGE = 90;
 const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt = n => Number(n).toLocaleString('en-IN');
+const partsTxt = s => (String(s||'').match(/\d+/g)||[]).join(', ');
 
 // ---------- search normalisation ("srinivasa rao" == "Srinivasarao" == "శ్రీనివాస") ----------
 function foldEn(s){
@@ -233,7 +234,7 @@ async function openWard(w, push=true){
       if(st.ward!==w) return;            // user switched again while loading
       DATA = doc.rows; META = doc.meta;
       const m = META;
-      $('sub').textContent = `Ward ${m.ward} · Assembly ${m.assembly||m.assembly_no} · Parts ${m.parts} · Published ${m.published} · Ages as of ${m.age_as_of} · ${fmt(m.counts.total)} voters`;
+      $('sub').textContent = `Ward ${m.ward} · Assembly ${m.assembly||m.assembly_no} · Parts ${partsTxt(m.parts)} · Published ${m.published} · Ages as of ${m.age_as_of} · ${fmt(m.counts.total)} voters`;
     }
     buildParts(); renderSummary(); run();
   }catch(e){
@@ -340,13 +341,13 @@ function renderSummary(){
     let M=0,F=0,O=0,T=0;
     el.innerHTML = `<h2>All wards</h2><div class="tblwrap"><table><thead><tr><th class="num">Ward</th><th>Assembly</th><th>Parts</th><th class="num">Male</th><th class="num">Female</th><th class="num">Other</th><th class="num">Total</th><th>Checked</th></tr></thead><tbody>${
       idx.wards.map(w=>{M+=w.male;F+=w.female;O+=w.other;T+=w.total;
-        return `<tr><td class="num"><a class="lk" data-ward="${w.ward}">${w.ward}</a></td><td class="te">${esc(w.assembly)}</td><td>${esc(w.parts)}</td><td class="num">${fmt(w.male)}</td><td class="num">${fmt(w.female)}</td><td class="num">${w.other}</td><td class="num">${fmt(w.total)}</td><td>${w.verified?'<span class="ok">✓ matches cover</span>':'<span class="warn">review</span>'}</td></tr>`}).join('')
+        return `<tr><td class="num"><a class="lk" data-ward="${w.ward}">${w.ward}</a></td><td class="te">${esc(w.assembly)}</td><td>${esc(partsTxt(w.parts))}</td><td class="num">${fmt(w.male)}</td><td class="num">${fmt(w.female)}</td><td class="num">${w.other}</td><td class="num">${fmt(w.total)}</td><td>${w.verified?'<span class="ok">✓ matches cover</span>':'<span class="warn">review</span>'}</td></tr>`}).join('')
     }</tbody><tfoot><tr><td></td><td>Total</td><td></td><td class="num">${fmt(M)}</td><td class="num">${fmt(F)}</td><td class="num">${O}</td><td class="num">${fmt(T)}</td><td></td></tr></tfoot></table></div>`;
     return;
   }
   const m = META, ct = m.cover_totals||{};
   const kv = [['జిల్లా పేరు · District',m.district],['నగర పాలక సంస్థ · Corporation',m.corporation],['వార్డు సంఖ్య · Ward',m.ward],
-              ['శాసనసభ నియోజకవర్గం · Assembly',m.assembly],['విభాగములు · Parts',m.parts],['మొత్తం ఓటర్లు · Total voters',fmt(m.total)]];
+              ['శాసనసభ నియోజకవర్గం · Assembly',m.assembly],['విభాగములు · Parts',partsTxt(m.parts)],['మొత్తం ఓటర్లు · Total voters',fmt(m.total)]];
   const ok = !m.issues.length;
   el.innerHTML = `<div class="kv">${kv.map(([k,v])=>`<div><span class="te">${k}</span><strong class="te">${esc(v)}</strong></div>`).join('')}</div>
    <h2><span class="te">అనుసూచిక</span> · Localities covered</h2>
@@ -409,7 +410,7 @@ window.addEventListener('popstate',()=>{ readURL(); openWard(st.ward,false); });
       idx.wards.map(w=>`<option value="${w.ward}">Ward ${w.ward} · ${fmt(w.total)} voters</option>`).join('');
     const T = idx.wards.reduce((s,w)=>s+w.total,0);
     $('tiles').innerHTML = `<a class="tile all" data-ward="all" href="?ward=all"><b>All wards</b><span>${fmt(T)} voters · search everywhere</span></a>` +
-      idx.wards.map(w=>`<a class="tile" data-ward="${w.ward}" href="?ward=${w.ward}"><b>Ward ${w.ward}</b><span>${fmt(w.total)} voters</span><span>Parts ${esc(w.parts)}</span></a>`).join('');
+      idx.wards.map(w=>`<a class="tile" data-ward="${w.ward}" href="?ward=${w.ward}"><b>Ward ${w.ward}</b><span>${fmt(w.total)} voters</span><span>Parts ${esc(partsTxt(w.parts))}</span></a>`).join('');
   }catch(e){ $('tiles').innerHTML='<div class="empty">Could not load data/wards/index.json. Serve this folder over HTTP (python3 -m http.server) or open the GitHub Pages link.</div>'; }
   openWard(st.ward,false);
 })();

@@ -89,7 +89,9 @@ def bbox_pages(pdf_path):
         med = sorted(voter)[len(voter) // 2]
     else:
         med = (1.0, 0.0, 0.0)
-    XFS = [f or med for f, _ in fits]
+    first_voter = next((i for i, (f, n) in enumerate(fits) if n >= 2), len(fits))
+    cover_xf = next((f for f, n in fits[:first_voter] if f), None)
+    XFS = [f or (cover_xf if i < first_voter and cover_xf else med) for i, (f, _) in enumerate(fits)]
     ncols = max([n for _, n in fits] or [0])
     out = []
     for ws, (a, b, c) in zip(raw, XFS):
@@ -137,13 +139,7 @@ def to_lines(words, spaces, tol=2.5):
 # ---------------------------------------------------------------- cover sheet
 def parse_cover(pages_words, pdf):
     meta = {'localities': []}
-    first = None
-    for i in range(min(4, len(pages_words))):
-        txt = ' '.join(w['t'] for w in pages_words[i])
-        if 'వార్డు.ఓ.జా' in txt:          # voter boxes start here
-            first = i
-            break
-    first = first if first is not None else 2
+    first = next((i for i in range(min(6, len(pages_words))) if _box_headers(pages_words[i])), 2)
     sp0 = space_glyphs(pdf, 0)
     lines0 = to_lines(pages_words[0], sp0)
     labels = {'జిల్లా పేరు': 'district', 'నగర పాలక సంస్థ పేరు': 'corporation', 'వార్డు సంఖ్య': 'ward',
@@ -187,6 +183,7 @@ def parse_cover(pages_words, pdf):
     m = re.search(r'\d+', meta.get('ward', ''))
     meta['ward'] = int(m.group()) if m else None
     meta['total'] = int(re.sub(r'\D', '', meta.get('total', '') or '0') or 0)
+    meta['parts'] = ', '.join(re.findall(r'\d+', meta.get('parts', '') or ''))
     return meta
 
 
