@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="te">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eluru Ward Voter Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --bg:#f6f5f1; --panel:#ffffff; --ink:#1d1f23; --muted:#646a73; --line:#dcd9d1; --soft:#efede7;
+  --accent:#0b6e4f; --accent-ink:#ffffff; --hl:#ffe58a; --chip:#e9f3ef; --f:#9b2c5a; --m:#1f5fa8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121417; --panel:#1b1e23; --ink:#e8e9eb; --muted:#9aa1ab; --line:#30353d; --soft:#22262c;
+    --accent:#3fbf8f; --accent-ink:#0c1512; --hl:#6b5a12; --chip:#1d2f28; --f:#e58bb0; --m:#7fb2ee;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1b1e23; --ink:#e8e9eb; --muted:#9aa1ab; --line:#30353d; --soft:#22262c;
+  --accent:#3fbf8f; --accent-ink:#0c1512; --hl:#6b5a12; --chip:#1d2f28; --f:#e58bb0; --m:#7fb2ee;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,"Noto Sans Telugu",system-ui,sans-serif}
+.te{font-family:"Noto Sans Telugu",Inter,sans-serif}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:14px 16px 0}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:19px;margin:0 0 2px;font-weight:600}
+.sub{color:var(--muted);font-size:12.5px}
+.tabs{display:flex;gap:4px;margin-top:12px}
+.tab{border:0;background:none;color:var(--muted);padding:9px 12px;font:inherit;font-weight:500;cursor:pointer;border-bottom:2px solid transparent}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+main{padding:14px 16px 60px}
+.controls{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.searchrow{display:flex;gap:8px}
+#q{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
+#q:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;padding:8px 12px;cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.filters{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:9px;font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:none;color:var(--ink);font:inherit;padding:5px 10px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.filters input[type=number]{width:58px;font:inherit;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)}
+.filters select{font:inherit;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)}
+.status{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 10px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+.status b{color:var(--ink)}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border-radius:20px;padding:3px 6px 3px 10px;color:var(--ink)}
+.pill button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1}
+/* grid of voter boxes, mirroring the printed roll */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+@media (max-width:960px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:7px 9px 8px;display:grid;grid-template-columns:1fr 64px;gap:0 8px;font-size:13px}
+.card .top{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--line);padding-bottom:4px;margin-bottom:4px;font-size:12px;color:var(--muted)}
+.sno{display:inline-block;border:1px solid var(--ink);color:var(--ink);font-weight:600;padding:0 6px;margin-left:4px}
+.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 6px;align-items:baseline}
+.card dt{color:var(--muted);font-size:12px;white-space:nowrap}
+.card dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.card .nm{font-weight:600}
+.en{display:block;color:var(--muted);font-size:11.5px;font-weight:400}
+.photo{border:1px solid var(--line);display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);height:74px;align-self:center;flex-direction:column;gap:2px}
+.g{font-weight:600}.g.F{color:var(--f)}.g.M{color:var(--m)}
+a.lk{color:inherit;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+a.lk:hover{color:var(--accent)}
+mark{background:var(--hl);color:inherit;border-radius:2px}
+.epic{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+/* table view */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:var(--soft);font-weight:600;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+td.num,th.num{text-align:right}
+.more{display:block;margin:16px auto;}
+.empty{padding:40px 0;text-align:center;color:var(--muted)}
+/* summary */
+.sum h2{font-size:16px;margin:4px 0 10px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:18px}
+.kv div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kv span{display:block;color:var(--muted);font-size:12px}
+.kv strong{font-size:18px;font-weight:600}
+tfoot td{font-weight:600;background:var(--soft)}
+.note{color:var(--muted);font-size:12.5px;margin-top:10px}
+.hidden{display:none!important}
+@media (max-width:620px){.controls{position:static}}
+
+.wardbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.wardbar label{font-size:13px;color:var(--muted)}
+#ward{font:inherit;font-size:15px;font-weight:600;padding:8px 12px;border:1px solid var(--accent);border-radius:9px;background:var(--panel);color:var(--ink);min-width:220px}
+.wbadge{display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:11px;border-radius:5px;padding:0 5px;margin-right:4px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px}
+.tile{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit}
+.tile:hover{border-color:var(--accent)}
+.tile b{display:block;font-size:20px}
+.tile span{display:block;color:var(--muted);font-size:12px}
+.tile.all{background:var(--chip)}
+.ok{color:var(--accent);font-size:12px}
+.warn{color:#b45309;font-size:12px}
+.loading{padding:40px 0;text-align:center;color:var(--muted)}
+.bar{height:4px;background:var(--soft);border-radius:2px;overflow:hidden;max-width:320px;margin:10px auto}
+.bar i{display:block;height:100%;background:var(--accent);width:0}
+.share{font-size:12.5px;color:var(--muted)}
+.share code{background:var(--soft);padding:2px 6px;border-radius:5px;color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap">
+  <h1><span class="te">ఏలూరు నగర పాలక సంస్థ</span> · Ward photo voter lists 2026</h1>
+  <div class="sub" id="sub">Eluru Municipal Corporation · searchable voter rolls by ward</div>
+  <div class="wardbar">
+   <label for="ward">Ward</label>
+   <select id="ward"><option value="">Choose a ward…</option></select>
+   <span class="share" id="share"></span>
+  </div>
+  <div class="tabs" role="tablist">
+   <button class="tab" role="tab" aria-selected="true" data-tab="voters">Voters</button>
+   <button class="tab" role="tab" aria-selected="false" data-tab="summary">Ward summary</button>
+   <button class="tab" id="theme" style="margin-left:auto" title="Toggle light/dark">Theme</button>
+  </div>
+ </div>
+</header>
+<main class="wrap">
+
+<section id="home">
+ <h2 style="font-size:16px;margin:6px 0 4px">Choose a ward</h2>
+ <p class="share" style="margin:0 0 10px">Each ward has its own link. Only the ward you open is downloaded.</p>
+ <div class="tiles" id="tiles"></div>
+</section>
+
+<section id="voters" class="hidden">
+ <div class="controls">
+  <div class="searchrow">
+   <input id="q" type="search" autocomplete="off" placeholder="Search anything: name, relative, house no, voter ID, serial… (Telugu or English)">
+   <button class="btn" id="clear">Clear</button>
+  </div>
+  <div class="filters">
+   <span>Part <span class="seg" id="fPart"></span></span>
+   <span>Gender <span class="seg" id="fGen"><button class="on" data-v="">All</button><button data-v="M">M</button><button data-v="F">F</button><button data-v="O">O</button></span></span>
+   <span>Age <input type="number" id="aMin" min="18" max="120" placeholder="min"> – <input type="number" id="aMax" min="18" max="120" placeholder="max"></span>
+   <span>Search in <select id="fField">
+     <option value="all">All fields</option><option value="name">Voter name</option><option value="rel">Relative name</option>
+     <option value="house">House no</option><option value="epic">Voter ID</option><option value="sno">Serial no</option></select></span>
+   <span>Sort <select id="sort"><option value="sno">Serial no</option><option value="name">Name (A–Z)</option><option value="house">House no</option><option value="ageA">Age ↑</option><option value="ageD">Age ↓</option></select></span>
+   <span class="seg" id="view"><button class="on" data-v="grid">Boxes</button><button data-v="table">Table</button></span>
+  </div>
+ </div>
+ <div class="status"><span id="count"></span><span><button class="btn" id="csv">Download results (CSV)</button></span></div>
+ <div id="out"></div>
+ <button class="btn primary more hidden" id="more">Show more</button>
+</section>
+
+<section id="summary" class="sum hidden"></section>
+</main>
+
+<script>
+const REL_TE = {Father:'తండ్రి పేరు',Husband:'భర్త పేరు',Mother:'తల్లి పేరు',Other:'ఇతరులు పేరు','—':'పేరు'};
+const GEN_TE = {M:'పు',F:'స్త్రీ',O:'ఇ'};
+const PAGE = 90;
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-IN');
+
+// ---------- search normalisation ("srinivasa rao" == "Srinivasarao" == "శ్రీనివాస") ----------
+function foldEn(s){
+  return s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g,'')
+    .replace(/w/g,'v').replace(/z/g,'j').replace(/aa/g,'a').replace(/ee/g,'i').replace(/oo/g,'u')
+    .replace(/([kgcjtdpb])h/g,'$1').replace(/sh/g,'s').replace(/ayi/g,'ai').replace(/ravu/g,'rao')
+    .replace(/(.)\1+/g,'$1');
+}
+function foldTe(s){ return String(s).normalize('NFC').replace(/[\s.:,\-\/\u200b-\u200d]/g,'').toLowerCase(); }
+
+// ---------- data loading (one JSON per ward, cached) ----------
+let INDEX = null;
+const CACHE = new Map();
+async function getIndex(){ if(!INDEX) INDEX = await fetch('data/wards/index.json').then(r=>r.json()); return INDEX; }
+async function getWard(w){
+  if(CACHE.has(w)) return CACHE.get(w);
+  const p = fetch(`data/wards/${w}.json`).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(doc=>{
+    const c = doc.cols;
+    const rows = doc.rows.map(r=>{ const d={}; c.forEach((k,i)=>d[k]=r[i]); d.ward=doc.meta.ward; d.asm=doc.meta.assembly_no; prep(d); return d; });
+    return {meta:doc.meta, rows};
+  });
+  CACHE.set(w,p); p.catch(()=>CACHE.delete(w));
+  return p;
+}
+function prep(d){
+  d._f = { name: foldTe(d.name)+'|'+foldEn(d.name_en), rel: foldTe(d.rel_name)+'|'+foldEn(d.rel_en),
+           house: foldTe(d.house), epic: String(d.epic).toLowerCase(), sno: ' '+d.sno+' '+d.part+'-'+d.part_sno+' ' };
+  d._f.all = [d._f.name,d._f.rel,d._f.house,d._f.epic,d._f.sno,String(d.age)].join('|');
+}
+
+// ---------- state ----------
+const st = {ward:'', q:'', part:'', gen:'', aMin:null, aMax:null, field:'all', sort:'sno', view:'grid', shown:PAGE, exactHouse:null};
+try{ const v=localStorage.getItem('eluruView'); if(v) st.view=v; }catch(e){}
+let DATA = [], META = null, results = [];
+
+function readURL(){
+  const u = new URL(location.href);
+  st.ward = (u.searchParams.get('ward') || location.hash.replace(/^#\/?(ward[=\/]?)?/,'') || '').trim().toLowerCase();
+  st.q = u.searchParams.get('q') || '';
+  $('q').value = st.q;
+}
+function writeURL(push){
+  const u = new URL(location.href);
+  u.hash = '';
+  if(st.ward) u.searchParams.set('ward', st.ward); else u.searchParams.delete('ward');
+  if(st.q) u.searchParams.set('q', st.q); else u.searchParams.delete('q');
+  (push?history.pushState:history.replaceState).call(history, null, '', u);
+  $('share').innerHTML = st.ward ? `Link: <code>${esc(u.origin+u.pathname)}?ward=${esc(st.ward)}</code>` : '';
+}
+
+async function openWard(w, push=true){
+  st.ward = w; st.part=''; st.exactHouse=null; writeURL(push);
+  $('ward').value = w;
+  if(!w){ show('home'); $('sub').textContent='Eluru Municipal Corporation · searchable voter rolls by ward'; return; }
+  show('voters');
+  $('out').innerHTML = `<div class="loading">Loading ward ${esc(w)}…<div class="bar"><i id="pbar"></i></div></div>`;
+  $('count').textContent=''; $('more').classList.add('hidden');
+  try{
+    if(w==='all'){
+      const idx = await getIndex(); let done=0;
+      const docs = await Promise.all(idx.wards.map(x=>getWard(x.ward).then(d=>{ done++; const b=$('pbar'); if(b) b.style.width=(100*done/idx.wards.length)+'%'; return d; })));
+      if(st.ward!=='all') return;
+      DATA = docs.flatMap(d=>d.rows); META = null;
+      $('sub').textContent = `All ${idx.wards.length} wards · ${fmt(DATA.length)} voters`;
+    } else {
+      const doc = await getWard(w);
+      if(st.ward!==w) return;            // user switched again while loading
+      DATA = doc.rows; META = doc.meta;
+      const m = META;
+      $('sub').textContent = `Ward ${m.ward} · Assembly ${m.assembly||m.assembly_no} · Parts ${m.parts} · Published ${m.published} · Ages as of ${m.age_as_of} · ${fmt(m.counts.total)} voters`;
+    }
+    buildParts(); renderSummary(); run();
+  }catch(e){
+    $('out').innerHTML = `<div class="empty">Couldn't load ward ${esc(w)} (${esc(e.message)}). Check the ward number, or pick one from the list.</div>`;
+  }
+}
+function show(which){
+  $('home').classList.toggle('hidden', which!=='home');
+  const tab = document.querySelector('.tab[aria-selected="true"]').dataset.tab;
+  $('voters').classList.toggle('hidden', which==='home' || tab!=='voters');
+  $('summary').classList.toggle('hidden', which==='home' || tab!=='summary');
+}
+function buildParts(){
+  const parts = [...new Set(DATA.map(d=>d.part))].sort((a,b)=>a-b);
+  $('fPart').innerHTML = `<button class="on" data-v="">All</button>` + (parts.length<=12 ? parts.map(p=>`<button data-v="${p}">${p}</button>`).join('') : '');
+  seg('fPart','part');
+}
+
+// ---------- search ----------
+function tokens(q){
+  return q.trim().split(/\s+/).filter(Boolean).map(t=>{
+    const te=/[ఀ-౿]/.test(t), num=/^\d+$/.test(t)?t:null;
+    return {te, raw:t, num, f: te?foldTe(t):(num?t:foldEn(t))};
+  }).filter(t=>t.f);
+}
+function matches(d,toks){
+  for(const t of toks){
+    const hay = d._f[st.field]; let ok;
+    if(t.num && st.field==='sno') ok = hay.includes(' '+t.num+' ') || hay.includes('-'+t.num+' ');
+    else if(t.num && st.field==='all') ok = String(d.sno)===t.num || String(d.age)===t.num || hay.includes(t.f);
+    else ok = hay.includes(t.f) || (!t.te && hay.includes(t.raw.toLowerCase()));
+    if(!ok) return false;
+  }
+  return true;
+}
+function run(){
+  const toks = tokens(st.q);
+  results = DATA.filter(d=>{
+    if(st.part && String(d.part)!==st.part) return false;
+    if(st.gen && d.gender!==st.gen) return false;
+    if(st.aMin!=null && d.age<st.aMin) return false;
+    if(st.aMax!=null && d.age>st.aMax) return false;
+    if(st.exactHouse!=null && (d.house!==st.exactHouse.h || d.ward!==st.exactHouse.w)) return false;
+    return toks.length ? matches(d,toks) : true;
+  });
+  const hk = h=>h.toLowerCase().replace(/\d+/g,n=>n.padStart(5,'0'));
+  const cmp = {sno:(a,b)=>a.ward-b.ward||a.sno-b.sno, name:(a,b)=>a.name_en.localeCompare(b.name_en),
+               house:(a,b)=>a.ward-b.ward||hk(a.house).localeCompare(hk(b.house))||a.sno-b.sno,
+               ageA:(a,b)=>a.age-b.age||a.sno-b.sno, ageD:(a,b)=>b.age-a.age||a.sno-b.sno}[st.sort];
+  results.sort(cmp); st.shown=PAGE; render();
+}
+function hl(text, kind){
+  const toks=tokens(st.q); let out=esc(text); if(!toks.length) return out;
+  for(const t of toks){
+    if(t.raw.length<2 && !t.te) continue;
+    if((t.te && kind==='te') || (!t.te && kind==='en')){
+      const r=esc(t.raw).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      out=out.replace(new RegExp(r, t.te?'g':'gi'), m=>`<mark>${m}</mark>`);
+    }
+  }
+  return out;
+}
+const allMode = ()=>st.ward==='all';
+function card(d){
+  return `<article class="card">
+   <div class="top"><span class="te">${allMode()?`<span class="wbadge">W${d.ward}</span>`:''}వార్డు.ఓ.జా.వ.సం.<span class="sno">${hl(String(d.sno),'en')}</span></span><span class="te">అ.ఓ.జా.వ.సం. ${d.asm} - ${d.part} - ${d.part_sno}</span></div>
+   <dl>
+    <dt class="te">ఓటరు పేరు</dt><dd class="nm te">${hl(d.name,'te')}<span class="en">${hl(d.name_en,'en')}</span></dd>
+    <dt class="te">${REL_TE[d.rel_type]||'పేరు'}</dt><dd class="te"><a class="lk" data-rel="${esc(d.rel_name)}">${hl(d.rel_name,'te')}</a><span class="en">${hl(d.rel_en,'en')}</span></dd>
+    <dt class="te">వయస్సు</dt><dd><b>${d.age}</b> &nbsp;<span class="te" style="color:var(--muted);font-size:12px">లింగము:</span> <span class="g ${d.gender} te">${GEN_TE[d.gender]||''}</span> <span class="g ${d.gender}">(${d.gender})</span></dd>
+    <dt class="te">ఇంటి సంఖ్య</dt><dd><a class="lk" data-house="${esc(d.house)}" data-w="${d.ward}" title="Show everyone at this house">${hl(d.house,'en')}</a></dd>
+    <dt class="te">ఓటరు ఐడి</dt><dd class="epic">${hl(d.epic,'en')}</dd>
+   </dl>
+   <div class="photo">Photo<br>Available<span style="font-size:10px">p.${d.page}</span></div>
+  </article>`;
+}
+function row(d){
+  return `<tr>${allMode()?`<td class="num">${d.ward}</td>`:''}<td class="num">${d.sno}</td><td>${d.part}-${d.part_sno}</td>
+   <td class="te">${hl(d.name,'te')}<span class="en">${hl(d.name_en,'en')}</span></td>
+   <td>${d.rel_type}</td><td class="te"><a class="lk" data-rel="${esc(d.rel_name)}">${hl(d.rel_name,'te')}</a><span class="en">${hl(d.rel_en,'en')}</span></td>
+   <td class="num">${d.age}</td><td><span class="g ${d.gender}">${d.gender}</span></td>
+   <td><a class="lk" data-house="${esc(d.house)}" data-w="${d.ward}">${hl(d.house,'en')}</a></td><td class="epic">${hl(d.epic,'en')}</td><td class="num">${d.page}</td></tr>`;
+}
+function render(){
+  const slice = results.slice(0, st.shown);
+  const m = results.filter(d=>d.gender==='M').length, f = results.filter(d=>d.gender==='F').length;
+  let c = `<span><b>${fmt(results.length)}</b> of ${fmt(DATA.length)} voters · ${fmt(m)} male · ${fmt(f)} female`;
+  if(st.exactHouse) c += ` &nbsp;<span class="pill">House ${esc(st.exactHouse.h)}${allMode()?' (ward '+st.exactHouse.w+')':''}<button id="xh" title="Remove">×</button></span>`;
+  $('count').innerHTML = c+'</span>';
+  if(!results.length) $('out').innerHTML = `<div class="empty">No voters match in ${allMode()?'any ward':'ward '+esc(st.ward)}. Try fewer words${allMode()?'':', or choose “All wards”'}.</div>`;
+  else if(st.view==='grid') $('out').innerHTML = `<div class="grid">${slice.map(card).join('')}</div>`;
+  else $('out').innerHTML = `<div class="tblwrap"><table><thead><tr>${allMode()?'<th class="num">Ward</th>':''}<th class="num">S.No</th><th>Part-S.No</th><th>Name</th><th>Relation</th><th>Relative</th><th class="num">Age</th><th>Sex</th><th>House no</th><th>Voter ID</th><th class="num">Page</th></tr></thead><tbody>${slice.map(row).join('')}</tbody></table></div>`;
+  $('more').classList.toggle('hidden', results.length<=st.shown);
+  $('more').textContent = `Show more (${fmt(results.length-st.shown)} left)`;
+  const xh=$('xh'); if(xh) xh.onclick=()=>{st.exactHouse=null; run();};
+  document.querySelectorAll('#view button').forEach(b=>b.classList.toggle('on', b.dataset.v===st.view));
+}
+
+// ---------- summary ----------
+function renderSummary(){
+  const el = $('summary');
+  if(allMode() || !META){
+    const idx = INDEX; if(!idx){ el.innerHTML=''; return; }
+    let M=0,F=0,O=0,T=0;
+    el.innerHTML = `<h2>All wards</h2><div class="tblwrap"><table><thead><tr><th class="num">Ward</th><th>Assembly</th><th>Parts</th><th class="num">Male</th><th class="num">Female</th><th class="num">Other</th><th class="num">Total</th><th>Checked</th></tr></thead><tbody>${
+      idx.wards.map(w=>{M+=w.male;F+=w.female;O+=w.other;T+=w.total;
+        return `<tr><td class="num"><a class="lk" data-ward="${w.ward}">${w.ward}</a></td><td class="te">${esc(w.assembly)}</td><td>${esc(w.parts)}</td><td class="num">${fmt(w.male)}</td><td class="num">${fmt(w.female)}</td><td class="num">${w.other}</td><td class="num">${fmt(w.total)}</td><td>${w.verified?'<span class="ok">✓ matches cover</span>':'<span class="warn">review</span>'}</td></tr>`}).join('')
+    }</tbody><tfoot><tr><td></td><td>Total</td><td></td><td class="num">${fmt(M)}</td><td class="num">${fmt(F)}</td><td class="num">${O}</td><td class="num">${fmt(T)}</td><td></td></tr></tfoot></table></div>`;
+    return;
+  }
+  const m = META, ct = m.cover_totals||{};
+  const kv = [['జిల్లా పేరు · District',m.district],['నగర పాలక సంస్థ · Corporation',m.corporation],['వార్డు సంఖ్య · Ward',m.ward],
+              ['శాసనసభ నియోజకవర్గం · Assembly',m.assembly],['విభాగములు · Parts',m.parts],['మొత్తం ఓటర్లు · Total voters',fmt(m.total)]];
+  const ok = !m.issues.length;
+  el.innerHTML = `<div class="kv">${kv.map(([k,v])=>`<div><span class="te">${k}</span><strong class="te">${esc(v)}</strong></div>`).join('')}</div>
+   <h2><span class="te">అనుసూచిక</span> · Localities covered</h2>
+   <div class="tblwrap"><table><thead><tr><th class="num">#</th><th>Locality</th><th>House no. from</th><th>to</th><th class="num">Part</th><th class="num">Male</th><th class="num">Female</th><th class="num">Other</th><th class="num">Total</th></tr></thead>
+   <tbody>${m.localities.map(l=>`<tr><td class="num">${l.n}</td><td class="te">${esc(l.locality)}</td><td>${esc(l.house_from)}</td><td>${esc(l.house_to)}</td><td class="num"><a class="lk" data-part="${l.part}">${l.part??''}</a></td><td class="num">${l.male??''}</td><td class="num">${l.female??''}</td><td class="num">${l.other??''}</td><td class="num">${l.total??''}</td></tr>`).join('')}</tbody>
+   <tfoot><tr><td></td><td class="te">మొత్తం ఓటర్లు · Total</td><td></td><td></td><td></td><td class="num">${ct.male??''}</td><td class="num">${ct.female??''}</td><td class="num">${ct.other??''}</td><td class="num">${ct.total??''}</td></tr></tfoot></table></div>
+   <p class="note">Extracted ${fmt(m.counts.total)} records (${m.counts.male} M, ${m.counts.female} F, ${m.counts.other} O) vs cover sheet ${fmt(ct.total||0)} — ${ok?'<span class="ok">all totals match ✓</span>':'<span class="warn">'+esc(m.issues.join('; '))+'</span>'}. Source: ${esc(m.source_pdf)}.</p>`;
+}
+
+// ---------- wiring ----------
+let tmr;
+$('q').addEventListener('input',()=>{clearTimeout(tmr); tmr=setTimeout(()=>{st.q=$('q').value; st.exactHouse=null; writeURL(false); run();},120);});
+$('clear').onclick=()=>{$('q').value='';st.q='';st.exactHouse=null;st.part='';st.gen='';st.aMin=st.aMax=null;
+  $('aMin').value=$('aMax').value='';
+  ['fPart','fGen'].forEach(id=>document.querySelectorAll('#'+id+' button').forEach((b,i)=>b.classList.toggle('on',i===0)));
+  writeURL(false); run(); $('q').focus();};
+function seg(id,key){document.querySelectorAll('#'+id+' button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#'+id+' button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); st[key]=b.dataset.v;
+  if(key==='view'){ try{localStorage.setItem('eluruView',st.view);}catch(e){} render(); } else run(); });}
+seg('fGen','gen'); seg('view','view');
+['aMin','aMax'].forEach(id=>$(id).addEventListener('input',e=>{const v=e.target.value; st[id]=v===''?null:+v; run();}));
+$('fField').onchange=e=>{st.field=e.target.value; run();};
+$('sort').onchange=e=>{st.sort=e.target.value; run();};
+$('more').onclick=()=>{st.shown+=PAGE*2; render();};
+$('ward').onchange=e=>openWard(e.target.value);
+$('out').addEventListener('click',e=>{
+  const a=e.target.closest('a.lk'); if(!a) return;
+  if(a.dataset.house!=null){ st.exactHouse={h:a.dataset.house,w:+a.dataset.w}; $('q').value=''; st.q=''; st.sort='sno'; $('sort').value='sno'; writeURL(false); run(); }
+  else if(a.dataset.rel!=null){ $('q').value=a.dataset.rel; st.q=a.dataset.rel; st.exactHouse=null; $('fField').value='all'; st.field='all'; writeURL(false); run(); }
+  window.scrollTo({top:$('voters').offsetTop-4,behavior:'smooth'});
+});
+$('summary').addEventListener('click',e=>{
+  const a=e.target.closest('a.lk'); if(!a) return;
+  if(a.dataset.ward){ openWard(a.dataset.ward); document.querySelector('.tab[data-tab="voters"]').click(); return; }
+  if(a.dataset.part){ st.part=a.dataset.part; document.querySelectorAll('#fPart button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.part));
+    document.querySelector('.tab[data-tab="voters"]').click(); run(); }
+});
+$('tiles').addEventListener('click',e=>{const t=e.target.closest('[data-ward]'); if(t){ e.preventDefault(); openWard(t.dataset.ward); }});
+$('csv').onclick=()=>{
+  const cols=['ward','sno','part','part_sno','name','name_en','rel_type','rel_name','rel_en','age','gender','house','epic','page'];
+  const head=['Ward','Ward S.No','Part','Assembly S.No','Name (Telugu)','Name (English)','Relation','Relative (Telugu)','Relative (English)','Age','Gender','House No','Voter ID','PDF page'];
+  const lines=[head.join(',')].concat(results.map(d=>cols.map(c=>'"'+String(d[c]??'').replace(/"/g,'""')+'"').join(',')));
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'}));
+  a.download=`ward${st.ward}_voters_filtered.csv`; a.click();
+};
+document.querySelectorAll('.tab[data-tab]').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===t));
+  if(st.ward) show('voters'); else show('home');
+});
+$('theme').onclick=()=>{ const r=document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark?'light':'dark'; };
+window.addEventListener('popstate',()=>{ readURL(); openWard(st.ward,false); });
+
+(async function init(){
+  readURL();
+  try{
+    const idx = await getIndex();
+    $('ward').innerHTML = `<option value="">Choose a ward…</option><option value="all">All wards (${idx.wards.length}) — search everywhere</option>` +
+      idx.wards.map(w=>`<option value="${w.ward}">Ward ${w.ward} · ${fmt(w.total)} voters</option>`).join('');
+    const T = idx.wards.reduce((s,w)=>s+w.total,0);
+    $('tiles').innerHTML = `<a class="tile all" data-ward="all" href="?ward=all"><b>All wards</b><span>${fmt(T)} voters · search everywhere</span></a>` +
+      idx.wards.map(w=>`<a class="tile" data-ward="${w.ward}" href="?ward=${w.ward}"><b>Ward ${w.ward}</b><span>${fmt(w.total)} voters</span><span>Parts ${esc(w.parts)}</span></a>`).join('');
+  }catch(e){ $('tiles').innerHTML='<div class="empty">Could not load data/wards/index.json. Serve this folder over HTTP (python3 -m http.server) or open the GitHub Pages link.</div>'; }
+  openWard(st.ward,false);
+})();
+</script>
+</body>
+</html>
