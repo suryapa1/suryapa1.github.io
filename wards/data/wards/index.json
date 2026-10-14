@@ -123,13 +123,13 @@
    "assembly": "65-ఏలూరు",
    "parts": "168, 178, 210, 211, 212, 213",
    "total": 3293,
-   "male": 1581,
+   "male": 1582,
    "female": 1711,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 23,
-   "bytes": 628297
+   "bytes": 628121
   },
   {
    "ward": 11,
@@ -137,12 +137,12 @@
    "parts": "201, 202, 203, 204, 205, 206",
    "total": 4276,
    "male": 2003,
-   "female": 2253,
+   "female": 2254,
    "other": 19,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 30,
-   "bytes": 801555
+   "bytes": 801404
   },
   {
    "ward": 12,
@@ -192,9 +192,9 @@
    "female": 2141,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 50,
-   "bytes": 774851
+   "bytes": 774926
   },
   {
    "ward": 16,
@@ -296,9 +296,9 @@
    "female": 1765,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 21,
-   "bytes": 653582
+   "bytes": 653596
   },
   {
    "ward": 24,
@@ -308,10 +308,10 @@
    "male": 1905,
    "female": 1973,
    "other": 3,
-   "published": "",
+   "published": "22-09-2026",
    "verified": false,
-   "localities": 47,
-   "bytes": 712305
+   "localities": 162,
+   "bytes": 730406
   },
   {
    "ward": 25,
@@ -322,9 +322,9 @@
    "female": 2235,
    "other": 2,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 11,
-   "bytes": 813101
+   "bytes": 813108
   },
   {
    "ward": 26,
@@ -332,12 +332,12 @@
    "parts": "159, 160, 163, 187",
    "total": 3735,
    "male": 1802,
-   "female": 1932,
+   "female": 1933,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 50,
-   "bytes": 728688
+   "bytes": 728498
   },
   {
    "ward": 27,
@@ -348,22 +348,22 @@
    "female": 2059,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 54,
-   "bytes": 808361
+   "bytes": 808368
   },
   {
    "ward": 28,
    "assembly": "65-ఏలూరు",
    "parts": "114, 115, 116, 117, 118",
    "total": 4207,
-   "male": 2033,
-   "female": 2172,
+   "male": 2034,
+   "female": 2173,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 25,
-   "bytes": 876662
+   "bytes": 876432
   },
   {
    "ward": 29,
@@ -413,9 +413,9 @@
    "female": 2108,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 38,
-   "bytes": 795098
+   "bytes": 795112
   },
   {
    "ward": 33,
@@ -526,26 +526,26 @@
    "assembly": "",
    "parts": "102, 103, 104, 71, 72, 95, 96, 97, 99",
    "total": 3830,
-   "male": 1847,
+   "male": 1848,
    "female": 1982,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 22,
-   "bytes": 815445
+   "bytes": 815269
   },
   {
    "ward": 42,
    "assembly": "65-ఏలూరు",
    "parts": "65, 66, 67, 68, 73, 97, 98, 99",
    "total": 3648,
-   "male": 1748,
+   "male": 1749,
    "female": 1899,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 12,
-   "bytes": 757170
+   "bytes": 756994
   },
   {
    "ward": 43,
@@ -734,13 +734,13 @@
    "assembly": "65-ఏలూరు",
    "parts": "10, 17, 18, 19, 51, 9",
    "total": 3708,
-   "male": 1840,
+   "male": 1841,
    "female": 1867,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 57,
-   "bytes": 729300
+   "bytes": 729159
   },
   {
    "ward": 58,
@@ -764,9 +764,9 @@
    "female": 1949,
    "other": 0,
    "published": "22-09-2026",
-   "verified": false,
+   "verified": true,
    "localities": 15,
-   "bytes": 702862
+   "bytes": 702876
   },
   {
    "ward": 60,

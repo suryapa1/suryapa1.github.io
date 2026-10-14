@@ -139,7 +139,7 @@ def to_lines(words, spaces, tol=2.5):
 # ---------------------------------------------------------------- cover sheet
 def parse_cover(pages_words, pdf):
     meta = {'localities': []}
-    first = next((i for i in range(min(6, len(pages_words))) if _box_headers(pages_words[i])), 2)
+    first = next((i for i in range(len(pages_words)) if _box_headers(pages_words[i])), 2)
     sp0 = space_glyphs(pdf, 0)
     lines0 = to_lines(pages_words[0], sp0)
     labels = {'జిల్లా పేరు': 'district', 'నగర పాలక సంస్థ పేరు': 'corporation', 'వార్డు సంఖ్య': 'ward',
@@ -206,17 +206,19 @@ def parse_box(lines):
         l = re.sub(r'\b(Photo|Available)\b', ' ', l).strip()
         if not l:
             continue
-        mg = re.search(r'లింగము\s*:\s*(పు|స్త్రీ|ఇ)', l) or re.search(r'లింగము[^:]{0,30}:\s*(స్త్రీ|పు|ఇ)', l)
+        mg = (re.search(r'ింగము\s*:\s*(పు|స్త్రీ|ఇ)', l) or re.search(r'ింగము[^:]{0,30}:\s*(స్త్రీ|పు|ఇ)', l)
+              or re.search(r'ింగము.*?(స్త్రీ|పు)\s*$', l))
         if mg: r['gender'] = GEN[mg.group(1)]
         mm = re.match(r'(తండ్రి|భర్త|తల్లి|ఇతరులు)\s*పేరు', l)
-        if l.startswith('ఓటరు పేరు'):
-            cur, v = 'name', l[len('ఓటరు పేరు'):]
+        mn = re.match(r'ఓటరు\S{0,3}\s*పేరు', l)
+        if mn:
+            cur, v = 'name', l[mn.end():]
         elif mm:
             r['rel_type'] = REL[mm.group(1)]; cur, v = 'rel', l[mm.end():]
         elif l.startswith('వయస్సు'):
-            cur, v = 'age', re.sub(r'లింగము.*', '', l[len('వయస్సు'):])
+            cur, v = 'age', re.sub(r'(?:ల)?ింగము.*', '', l[len('వయస్సు'):])
             # an over-long relative name sometimes overprints the age line: move it back
-            stray = re.sub(r'[\d:\s]', '', re.sub(r'లింగము.*', '', l[len('వయస్సు'):]))
+            stray = re.sub(r'[\d:\s]', '', re.sub(r'(?:ల)?ింగము.*', '', l[len('వయస్సు'):]))
             if stray and re.search(r'[\u0C00-\u0C7F]', stray) and vals['rel']:
                 vals['rel'].append(stray); r['overlap_fix'] = True
         elif l.startswith('ఇంటి సంఖ్య'):
@@ -309,7 +311,8 @@ def process(pdf_path, out_dir, workers):
     if dups: issues.append(f'duplicate serials: {dups[:20]}')
     fixed = [r['sno'] for r in recs if r.get('overlap_fix')]
     meta['auto_fixed'] = fixed
-    for f in ['name', 'rel_name', 'age', 'gender', 'house', 'epic']:
+    meta['blank_in_source'] = {f: [r['sno'] for r in recs if not r[f]] for f in ['name', 'rel_name'] if any(not r[f] for r in recs)}
+    for f in ['age', 'gender', 'house', 'epic']:
         bad = [r['sno'] for r in recs if not r[f] and r[f] != 0]
         if bad: issues.append(f'empty {f}: {bad[:15]}')
     g = Counter(r['gender'] for r in recs)

@@ -178,10 +178,11 @@ function foldTe(s){ return String(s).normalize('NFC').replace(/[\s.:,\-\/\u200b-
 // ---------- data loading (one JSON per ward, cached) ----------
 let INDEX = null;
 const CACHE = new Map();
-async function getIndex(){ if(!INDEX) INDEX = await fetch('data/wards/index.json').then(r=>r.json()); return INDEX; }
+async function getIndex(){ if(!INDEX) INDEX = await fetch('data/wards/index.json',{cache:'no-cache'}).then(r=>r.json()); return INDEX; }
+const wardVer = w => { const x = INDEX && INDEX.wards.find(v=>String(v.ward)===String(w)); return x ? `${x.total}-${x.bytes}` : Date.now(); };
 async function getWard(w){
   if(CACHE.has(w)) return CACHE.get(w);
-  const p = fetch(`data/wards/${w}.json`).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(doc=>{
+  const p = fetch(`data/wards/${w}.json?v=${wardVer(w)}`).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(doc=>{
     const c = doc.cols;
     const rows = doc.rows.map(r=>{ const d={}; c.forEach((k,i)=>d[k]=r[i]); d.ward=doc.meta.ward; d.asm=doc.meta.assembly_no; prep(d); return d; });
     return {meta:doc.meta, rows};
