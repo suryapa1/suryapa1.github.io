@@ -105,6 +105,32 @@ tfoot td{font-weight:600;background:var(--soft)}
 .bar i{display:block;height:100%;background:var(--accent);width:0}
 .share{font-size:12.5px;color:var(--muted)}
 .share code{background:var(--soft);padding:2px 6px;border-radius:5px;color:var(--ink)}
+.slipbtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;font:inherit;font-size:11.5px;padding:1px 7px;cursor:pointer;margin-left:6px}
+.slipbtn:hover{border-color:var(--accent);color:var(--accent)}
+.prtrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#printArea{display:none}
+.slips{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.slip{break-inside:avoid;page-break-inside:avoid;border:1px dashed #555;padding:3mm 3.5mm;min-height:62mm;box-sizing:border-box;
+font:10pt/1.3 "Noto Sans Telugu",Inter,sans-serif;display:grid;grid-template-columns:1fr 21mm;grid-template-rows:auto auto 1fr auto;gap:0 2.5mm;color:#000}
+.slip .sh{grid-column:1/-1;text-align:center;font-weight:600;font-size:10pt;border-bottom:1px solid #000;padding-bottom:1.2mm;margin-bottom:1.5mm}
+.slip .sh small{display:block;font-weight:400;font-size:8pt}
+.slip .sid{grid-column:1/-1;display:flex;justify-content:space-between;font-size:9.5pt;margin-bottom:1mm}
+.slip .sid b{border:1px solid #000;padding:0 2mm;font-size:11pt}
+.slip dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:.6mm 2.5mm;align-content:start}
+.slip dt{font-size:8.5pt;color:#333;white-space:nowrap}
+.slip dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.slip dd .en{display:block;font-weight:400;font-size:8.5pt;color:#333}
+.slip .ph{border:1px solid #000;height:26mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:8pt;color:#444;align-self:start;margin-top:1mm}
+.slip .ft{grid-column:1/-1;font-size:7.5pt;color:#444;border-top:1px dotted #777;margin-top:1mm;padding-top:.8mm;display:flex;justify-content:space-between;align-self:end}
+#snap{position:fixed;left:-10000px;top:0;width:105mm;background:#fff}
+@media print{
+  @page{size:A4;margin:8mm}
+  body{background:#fff!important}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;color:#000}
+  #printArea.one .slips{display:block}
+  #printArea.one .slip{width:105mm;min-height:70mm;border:1px dashed #555}
+}
 </style>
 </head>
 <body>
@@ -149,7 +175,7 @@ tfoot td{font-weight:600;background:var(--soft)}
    <span class="seg" id="view"><button class="on" data-v="grid">Boxes</button><button data-v="table">Table</button></span>
   </div>
  </div>
- <div class="status"><span id="count"></span><span><button class="btn" id="csv">Download results (CSV)</button></span></div>
+ <div class="status"><span id="count"></span><span class="prtrow"><button class="btn" id="prtAll" title="Print a voter slip for every voter currently shown">🖨 Print slips</button><button class="btn" id="csv">Download results (CSV)</button></span></div>
  <div id="out"></div>
  <button class="btn primary more hidden" id="more">Show more</button>
 </section>
@@ -157,6 +183,7 @@ tfoot td{font-weight:600;background:var(--soft)}
 <section id="summary" class="sum hidden"></section>
 </main>
 
+<div id="printArea"></div><div id="snap"></div>
 <script>
 const REL_TE = {Father:'తండ్రి పేరు',Husband:'భర్త పేరు',Mother:'తల్లి పేరు',Other:'ఇతరులు పేరు','—':'పేరు'};
 const GEN_TE = {M:'పు',F:'స్త్రీ',O:'ఇ'};
@@ -301,7 +328,7 @@ function hl(text, kind){
 const allMode = ()=>st.ward==='all';
 function card(d){
   return `<article class="card">
-   <div class="top"><span class="te">${allMode()?`<span class="wbadge">W${d.ward}</span>`:''}వార్డు.ఓ.జా.వ.సం.<span class="sno">${hl(String(d.sno),'en')}</span></span><span class="te">అ.ఓ.జా.వ.సం. ${d.asm} - ${d.part} - ${d.part_sno}</span></div>
+   <div class="top"><span class="te">${allMode()?`<span class="wbadge">W${d.ward}</span>`:''}వార్డు.ఓ.జా.వ.సం.<span class="sno">${hl(String(d.sno),'en')}</span></span><span class="te">అ.ఓ.జా.వ.సం. ${d.asm} - ${d.part} - ${d.part_sno}<button class="slipbtn" data-slip="${d.ward}:${d.sno}" title="Print this voter's slip">🖨 Slip</button><button class="slipbtn" data-snap="${d.ward}:${d.sno}" title="Save / share slip as image">📷</button></span></div>
    <dl>
     <dt class="te">ఓటరు పేరు</dt><dd class="nm te">${hl(d.name,'te')}<span class="en">${hl(d.name_en,'en')}</span></dd>
     <dt class="te">${REL_TE[d.rel_type]||'పేరు'}</dt><dd class="te"><a class="lk" data-rel="${esc(d.rel_name)}">${hl(d.rel_name,'te')}</a><span class="en">${hl(d.rel_en,'en')}</span></dd>
@@ -317,7 +344,7 @@ function row(d){
    <td class="te">${hl(d.name,'te')}<span class="en">${hl(d.name_en,'en')}</span></td>
    <td>${d.rel_type}</td><td class="te"><a class="lk" data-rel="${esc(d.rel_name)}">${hl(d.rel_name,'te')}</a><span class="en">${hl(d.rel_en,'en')}</span></td>
    <td class="num">${d.age}</td><td><span class="g ${d.gender}">${d.gender}</span></td>
-   <td><a class="lk" data-house="${esc(d.house)}" data-w="${d.ward}">${hl(d.house,'en')}</a></td><td class="epic">${hl(d.epic,'en')}</td><td class="num">${d.page}</td></tr>`;
+   <td><a class="lk" data-house="${esc(d.house)}" data-w="${d.ward}">${hl(d.house,'en')}</a></td><td class="epic">${hl(d.epic,'en')}</td><td class="num">${d.page}</td><td style="white-space:nowrap"><button class="slipbtn" data-slip="${d.ward}:${d.sno}" title="Print this voter's slip">🖨</button><button class="slipbtn" data-snap="${d.ward}:${d.sno}" title="Save / share slip as image">📷</button></td></tr>`;
 }
 function render(){
   const slice = results.slice(0, st.shown);
@@ -327,11 +354,74 @@ function render(){
   $('count').innerHTML = c+'</span>';
   if(!results.length) $('out').innerHTML = `<div class="empty">No voters match in ${allMode()?'any ward':'ward '+esc(st.ward)}. Try fewer words${allMode()?'':', or choose “All wards”'}.</div>`;
   else if(st.view==='grid') $('out').innerHTML = `<div class="grid">${slice.map(card).join('')}</div>`;
-  else $('out').innerHTML = `<div class="tblwrap"><table><thead><tr>${allMode()?'<th class="num">Ward</th>':''}<th class="num">S.No</th><th>Part-S.No</th><th>Name</th><th>Relation</th><th>Relative</th><th class="num">Age</th><th>Sex</th><th>House no</th><th>Voter ID</th><th class="num">Page</th></tr></thead><tbody>${slice.map(row).join('')}</tbody></table></div>`;
+  else $('out').innerHTML = `<div class="tblwrap"><table><thead><tr>${allMode()?'<th class="num">Ward</th>':''}<th class="num">S.No</th><th>Part-S.No</th><th>Name</th><th>Relation</th><th>Relative</th><th class="num">Age</th><th>Sex</th><th>House no</th><th>Voter ID</th><th class="num">Page</th><th></th></tr></thead><tbody>${slice.map(row).join('')}</tbody></table></div>`;
   $('more').classList.toggle('hidden', results.length<=st.shown);
   $('more').textContent = `Show more (${fmt(results.length-st.shown)} left)`;
   const xh=$('xh'); if(xh) xh.onclick=()=>{st.exactHouse=null; run();};
   document.querySelectorAll('#view button').forEach(b=>b.classList.toggle('on', b.dataset.v===st.view));
+}
+
+// ---------- printable voter slips ----------
+function slipMeta(w){
+  if(META && String(META.ward)===String(w)) return {pub:META.published, age:META.age_as_of};
+  const x = INDEX && INDEX.wards.find(v=>String(v.ward)===String(w));
+  return {pub: x ? x.published : '', age: '01-01-2026'};
+}
+function slip(d){
+  const m = slipMeta(d.ward);
+  return `<div class="slip">
+   <div class="sh">ఏలూరు నగర పాలక సంస్థ · వార్డు ${d.ward}<small>Eluru Municipal Corporation · Ward ${d.ward} · Voter slip 2026</small></div>
+   <div class="sid"><span>వార్డు.ఓ.జా.వ.సం. <b>${d.sno}</b></span><span>అ.ఓ.జా.వ.సం. ${d.asm} - ${d.part} - ${d.part_sno}</span></div>
+   <dl>
+    <dt>ఓటరు పేరు</dt><dd>${esc(d.name)||'—'}<span class="en">${esc(d.name_en)}</span></dd>
+    <dt>${REL_TE[d.rel_type]||'పేరు'}</dt><dd>${esc(d.rel_name)||'—'}<span class="en">${esc(d.rel_en)}</span></dd>
+    <dt>వయస్సు/లింగం</dt><dd>${d.age} &nbsp;/&nbsp; ${GEN_TE[d.gender]||''} (${d.gender||'-'})</dd>
+    <dt>ఇంటి సంఖ్య</dt><dd>${esc(d.house)}</dd>
+    <dt>ఓటరు ఐడి</dt><dd style="font-family:ui-monospace,Menlo,monospace">${esc(d.epic)}</dd>
+    <dt>విభాగము</dt><dd>${d.part}</dd>
+   </dl>
+   <div class="ph">Photo<br>Available<br><small>roll p.${d.page}</small></div>
+   <div class="ft"><span>Roll published ${esc(m.pub)} · age as of ${esc(m.age)}</span><span>✂</span></div>
+  </div>`;
+}
+function printSlips(list){
+  if(!list.length) return;
+  const one = list.length===1;
+  $('printArea').classList.toggle('one', one);
+  let ps = document.getElementById('pagesize');
+  if(!ps){ ps=document.createElement('style'); ps.id='pagesize'; document.head.appendChild(ps); }
+  ps.textContent = '';   // always a normal A4 page, printed at actual size
+  if(list.length > 400 && !confirm(`Print ${list.length.toLocaleString()} slips (about ${Math.ceil(list.length/8)} pages)?`)) return;
+  $('printArea').innerHTML = `<div class="slips">${list.map(slip).join('')}</div>`;
+  const done = ()=>{ $('printArea').innerHTML=''; window.removeEventListener('afterprint',done); };
+  window.addEventListener('afterprint', done);
+  // give the Telugu font a moment to apply before the print dialog opens
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(()=>setTimeout(()=>window.print(),150));
+}
+
+function loadH2C(){
+  if(window.html2canvas) return Promise.resolve();
+  return new Promise((ok,bad)=>{ const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; s.onload=ok; s.onerror=bad; document.head.appendChild(s); });
+}
+async function snapSlip(d, btn){
+  const old = btn && btn.textContent; if(btn) btn.textContent='…';
+  try{
+    await loadH2C(); if(document.fonts) await document.fonts.ready;
+    $('snap').innerHTML = slip(d);
+    const canvas = await html2canvas($('snap').firstElementChild, {scale:3, backgroundColor:'#ffffff'});
+    $('snap').innerHTML = '';
+    const blob = await new Promise(r=>canvas.toBlob(r,'image/png'));
+    const name = `voter-slip-ward${d.ward}-${d.sno}.png`;
+    const file = new File([blob], name, {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]}) && matchMedia('(pointer:coarse)').matches){
+      await navigator.share({files:[file], title:`Voter slip · Ward ${d.ward} · ${d.sno}`});
+    } else {
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    }
+  }catch(e){ if(e && e.name!=='AbortError') alert('Could not create the image: '+(e.message||e)); }
+  finally{ if(btn) btn.textContent=old; }
 }
 
 // ---------- summary ----------
@@ -375,6 +465,10 @@ $('sort').onchange=e=>{st.sort=e.target.value; run();};
 $('more').onclick=()=>{st.shown+=PAGE*2; render();};
 $('ward').onchange=e=>openWard(e.target.value);
 $('out').addEventListener('click',e=>{
+  const sn=e.target.closest('[data-snap]');
+  if(sn){ const [w,s]=sn.dataset.snap.split(':'); const d=DATA.find(x=>String(x.ward)===w && String(x.sno)===s); if(d) snapSlip(d, sn); return; }
+  const sb=e.target.closest('[data-slip]');
+  if(sb){ const [w,s]=sb.dataset.slip.split(':'); const d=DATA.find(x=>String(x.ward)===w && String(x.sno)===s); if(d) printSlips([d]); return; }
   const a=e.target.closest('a.lk'); if(!a) return;
   if(a.dataset.house!=null){ st.exactHouse={h:a.dataset.house,w:+a.dataset.w}; $('q').value=''; st.q=''; st.sort='sno'; $('sort').value='sno'; writeURL(false); run(); }
   else if(a.dataset.rel!=null){ $('q').value=a.dataset.rel; st.q=a.dataset.rel; st.exactHouse=null; $('fField').value='all'; st.field='all'; writeURL(false); run(); }
@@ -387,6 +481,7 @@ $('summary').addEventListener('click',e=>{
     document.querySelector('.tab[data-tab="voters"]').click(); run(); }
 });
 $('tiles').addEventListener('click',e=>{const t=e.target.closest('[data-ward]'); if(t){ e.preventDefault(); openWard(t.dataset.ward); }});
+$('prtAll').onclick=()=>printSlips(results);
 $('csv').onclick=()=>{
   const cols=['ward','sno','part','part_sno','name','name_en','rel_type','rel_name','rel_en','age','gender','house','epic','page'];
   const head=['Ward','Ward S.No','Part','Assembly S.No','Name (Telugu)','Name (English)','Relation','Relative (Telugu)','Relative (English)','Age','Gender','House No','Voter ID','PDF page'];
