@@ -63,8 +63,11 @@ common = {w for w, n in freq.items() if n > 2500}
 # ---- group by door number, then link members that share a family word (union-find)
 byh = collections.defaultdict(list)
 for k, r in rows.items():
-    if full_door(r['house']):
-        byh[nh(r['house'])].append(k)
+    d = nh(r['house'])
+    if not d or not re.search(r'\d', d):
+        continue
+    # full door numbers are city-wide (can span wards); short ones only group within a ward
+    byh[d if full_door(r['house']) else f"{k[0]}#{d}"].append(k)
 
 parent = {}
 def find(x):
@@ -75,9 +78,9 @@ def union(a, b):
     ra, rb = find(a), find(b)
     if ra != rb: parent[ra] = rb
 
-households = []
+families, households = [], []          # all families (2+ voters) / the split ones
 for h, ks in byh.items():
-    if len({w for w, _ in ks}) < 2:
+    if len(ks) < 2 or len(ks) > 400:   # 400+: placeholder door like "0" or "NA"
         continue
     fam = {k: surnames(rows[k], common) for k in ks}
     for k in ks: parent[k] = k
@@ -88,27 +91,36 @@ for h, ks in byh.items():
     groups = collections.defaultdict(list)
     for k in ks: groups[find(k)].append(k)
     for g in groups.values():
-        wards = collections.Counter(w for w, _ in g)
-        if len(wards) < 2:
+        if len(g) < 2:
             continue
-        # strong if a cross-ward relative-name -> name match exists
+        wards = collections.Counter(w for w, _ in g)
+        split = len(wards) > 1
         W = {k: (words(rows[k]['name']), words(rows[k]['rel_name'])) for k in g}
         def rel_is(a, b):      # a's relative is b
             return (len(W[a][1]) >= 2 and W[a][1] == W[b][0]) or \
                    (len(nname(rows[a]['rel_name'])) >= 6 and nname(rows[a]['rel_name']) == nname(rows[b]['name']))
         def same_rel(a, b):    # a and b name the same relative
             return len(W[a][1]) >= 2 and W[a][1] == W[b][1]
-        strong = any(a[0] != b[0] and (rel_is(a, b) or same_rel(a, b)) for a in g for b in g)
+        # split families: the relationship must cross wards; together families: any pair
+        strong = any(a != b and (a[0] != b[0] or not split) and (rel_is(a, b) or same_rel(a, b)) for a in g for b in g)
         top = wards.most_common()
         home = top[0][0] if (len(top) == 1 or top[0][1] > top[1][1]) else None   # tie -> no clear home
         surname = collections.Counter(x for k in g for x in fam[k]).most_common(1)
-        households.append(dict(house=rows[g[0]]['house'], key=h, surname=surname[0][0] if surname else '',
-                               strong=strong, home=home, wards=dict(wards), members=sorted(g)))
+        f = dict(house=rows[g[0]]['house'], key=h, surname=surname[0][0] if surname else '',
+                 strong=strong, home=home, wards=dict(wards), members=sorted(g), split=split)
+        families.append(f)
+        if split:
+            households.append(f)
 
 # ---- per-ward impact and ward-pair flows
 away_from = collections.Counter()     # home ward -> members registered elsewhere
 away_in = collections.Counter()       # ward holding members whose family is mostly elsewhere
 split_hh = collections.Counter()
+fam_w, tog_w = collections.Counter(), collections.Counter()
+for f in families:
+    for w in f['wards']:
+        fam_w[w] += 1
+        if not f['split']: tog_w[w] += 1
 pairs = collections.Counter()
 for hh in households:
     for w in hh['wards']:
@@ -155,11 +167,14 @@ out = dict(
         away_voters=sum(away_from.values()),
         away_voters_strong=sum(1 for h in households if h['home'] and h['strong'] for (w, s) in h['members'] if w != h['home']),
         no_clear_home=sum(1 for h in households if h['home'] is None),
+        families_total=len(families), families_together=len(families) - len(households),
+        voters_in_families=sum(len(f['members']) for f in families),
         duplicates=len(dups), duplicates_cross_ward=dup_cross, duplicates_same_door=dup_same_door,
         duplicate_extra_entries=sum(len(g) - 1 for g in dups),
     ),
     wards=[dict(ward=w, voters=ward_total[w], split_households=split_hh[w],
-                away_from=away_from[w], away_in=away_in[w], dup_entries=dup_ward[w]) for w in sorted(ward_total)],
+                away_from=away_from[w], away_in=away_in[w], dup_entries=dup_ward[w],
+                families=fam_w[w], together=tog_w[w]) for w in sorted(ward_total)],
     pairs=[[a, b, n] for (a, b), n in pairs.most_common(60)],
     cols=['ward'] + KEEP,
     households=[dict(h=hh['house'], s=hh['surname'], st=int(hh['strong']), home=hh['home'],
@@ -169,10 +184,22 @@ out = dict(
                      m=[[w] + [rows[(w, s)][k] for k in KEEP] for (w, s) in g])
                 for g in sorted(dups, key=lambda g: (-(len({k[0] for k in g}) > 1), -len(g)))],
 )
+per = collections.defaultdict(list)
+for f in families:
+    rec = [f['house'], f['surname'], int(f['strong']), f['home'], int(f['split']),
+           [[w] + [rows[(w, sn)][k] for k in KEEP] for (w, sn) in f['members']]]
+    for w in f['wards']:
+        per[w].append(rec)
+for w in ward_total:
+    with open(os.path.join(D, f'{w}.families.json'), 'w', encoding='utf-8') as fh:
+        json.dump(dict(cols=['ward'] + KEEP, families=sorted(per[w], key=lambda r: (-r[4], -len(r[5])))), fh,
+                  ensure_ascii=False, separators=(',', ':'))
+
 dst = os.path.join(D, 'splits.json')
 with open(dst, 'w', encoding='utf-8') as f:
     json.dump(out, f, ensure_ascii=False, separators=(',', ':'))
 s = out['summary']
 print(f"{s['duplicates']} possible duplicate groups ({s['duplicates_cross_ward']} across wards, {s['duplicates_same_door']} same door, {s['duplicate_extra_entries']} extra entries)")
+print(f"{s['families_total']} families of 2+ voters: {s['families_together']} together in one ward, {s['households']} split")
 print(f"{s['households']} split households ({s['strong']} strong) · {s['voters_in_split']} voters · "
       f"{s['away_voters']} registered away from their family's ward · wrote {dst} ({os.path.getsize(dst)//1024} KB)")

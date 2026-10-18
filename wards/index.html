@@ -363,7 +363,7 @@ function card(d){
     <dt class="te">ఓటరు పేరు</dt><dd class="nm te">${hl(d.name,'te')}<span class="en">${hl(d.name_en,'en')}</span></dd>
     <dt class="te">${REL_TE[d.rel_type]||'పేరు'}</dt><dd class="te"><a class="lk" data-rel="${esc(d.rel_name)}">${hl(d.rel_name,'te')}</a><span class="en">${hl(d.rel_en,'en')}</span></dd>
     <dt class="te">వయస్సు</dt><dd><b>${d.age}</b> &nbsp;<span class="te" style="color:var(--muted);font-size:12px">లింగము:</span> <span class="g ${d.gender} te">${GEN_TE[d.gender]||''}</span> <span class="g ${d.gender}">(${d.gender})</span></dd>
-    <dt class="te">ఇంటి సంఖ్య</dt><dd><a class="lk" data-house="${esc(d.house)}" data-w="${d.ward}" title="Show everyone at this house">${hl(d.house,'en')}</a></dd>
+    <dt class="te">ఇంటి సంఖ్య</dt><dd><a class="lk" data-house="${esc(d.house)}" data-w="${d.ward}" title="Show everyone at this house">${hl(d.house,'en')}</a> <a href="families.html#families?m=all&w=${d.ward}&q=${encodeURIComponent(d.house)}" target="_blank" rel="noopener" title="See this family (together or split) on the dashboard" style="font-size:11.5px;color:var(--muted);text-decoration:none">👪 family</a></dd>
     <dt class="te">ఓటరు ఐడి</dt><dd class="epic">${hl(d.epic,'en')}</dd>
    </dl>
    <div class="pcol"><div class="photo">Photo<br>Available<span style="font-size:10px">p.${d.page}</span></div><div class="acts"><button class="slipbtn" data-slip="${d.ward}:${d.sno}" title="Print this voter's slip">🖨 Slip</button><button class="slipbtn" data-snap="${d.ward}:${d.sno}" title="Save / share slip as image">📷</button></div></div>

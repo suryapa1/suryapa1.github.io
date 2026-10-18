@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Eluru Split Families</title>
+<title>Eluru Ward Families</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -56,7 +56,15 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .tblwrap{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:10px}
 .inbar{display:inline-block;height:9px;background:var(--bar2);border-radius:0 3px 3px 0;vertical-align:middle;margin-right:6px}
 /* household cards */
-.hh{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.hh{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.hh.split{border-left-color:var(--warn)}
+.badge.tog{background:var(--chip);color:var(--accent);border-color:transparent;font-weight:600}
+.badge.spl{background:var(--warnbg);color:var(--warn);border-color:transparent;font-weight:600}
+.meter{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:8px;gap:2px}
+.meter i{display:block;height:100%}
+.meter .t{background:var(--accent)} .meter .s{background:var(--warn)}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pick button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:3px 9px;cursor:pointer}
 .hh .hd{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
 .door{font-weight:600;font-size:15px}
 .badge{font-size:11.5px;border-radius:20px;padding:1px 8px;border:1px solid var(--line);color:var(--muted)}
@@ -95,7 +103,7 @@ mark{background:var(--hl);color:inherit}
 </head>
 <body>
 <header><div class="wrap">
- <h1><span class="te">ఏలూరు నగర పాలక సంస్థ</span> · Families split across wards</h1>
+ <h1><span class="te">ఏలూరు నగర పాలక సంస్థ</span> · Families: 🟢 together &amp; 🟠 split across wards</h1>
  <div class="sub" id="sub">Loading…</div>
  <div class="tabs" role="tablist">
   <button class="tab" data-tab="overview" aria-selected="true">Overview</button>
@@ -117,7 +125,7 @@ mark{background:var(--hl);color:inherit}
    <h2>Voters whose family is also registered in another ward</h2>
    <div class="note">Per ward. Click a bar to list those families. Hover for details.</div>
    <div class="ctl"><span>Sort</span><span class="seg" id="bsort"><button class="on" data-v="v">Most first</button><button data-v="w">Ward no.</button></span>
-     <span>Show</span><span class="seg" id="bmode"><button class="on" data-v="linked">Voters</button><button data-v="hh">Families</button><button data-v="pct">% of ward</button></span></div>
+     <span>Show</span><span class="seg" id="bmode"><button class="on" data-v="linked">Voters</button><button data-v="hh">Families</button><button data-v="pct">% of ward</button><button data-v="spct">% families split</button></span></div>
    <div class="bars" id="bars"></div>
   </div>
   <div class="card">
@@ -137,7 +145,7 @@ mark{background:var(--hl);color:inherit}
   <h2>All wards</h2>
   <div class="note">Click a column to sort, or a ward to list its families. "Registered outside main ward" counts members of families whose majority is in another ward.</div>
   <div class="tblwrap"><table id="wtab"><thead><tr>
-   <th data-k="ward" class="n">Ward</th><th data-k="voters" class="n">Voters</th><th data-k="hh" class="n">Split families</th>
+   <th data-k="ward" class="n">Ward</th><th data-k="voters" class="n">Voters</th><th data-k="fams" class="n">Families</th><th data-k="tog" class="n">🟢 Together</th><th data-k="hh" class="n">🟠 Split</th><th data-k="spct" class="n">% split</th>
    <th data-k="linked" class="n">Voters in split families</th><th data-k="pct" class="n">% of ward</th>
    <th data-k="outside" class="n">Registered outside main ward</th><th data-k="dups" class="n">Possible duplicate entries</th></tr></thead><tbody></tbody></table></div>
  </div>
@@ -147,6 +155,7 @@ mark{background:var(--hl);color:inherit}
 <section id="families" class="hidden">
  <div class="card">
   <div class="ctl" style="margin-bottom:8px">
+   <span class="seg" id="fm"><button class="on" data-v="split">🟠 Split</button><button data-v="together">🟢 Together</button><button data-v="all">All families</button></span>
    <input type="search" id="q" placeholder="Search door no., surname, name, voter ID (Telugu or English)…">
    <select id="fw"><option value="">All wards</option></select>
    <select id="fw2"><option value="">…and any other ward</option></select>
@@ -154,7 +163,7 @@ mark{background:var(--hl);color:inherit}
    <span class="seg" id="fc"><button class="on" data-v="">All</button><button data-v="1">Strong</button><button data-v="0">Possible</button></span>
    <button class="btn" id="csvF">Download CSV</button>
   </div>
-  <div class="legend"><span><i style="background:var(--accent)"></i>Main ward (most of the family)</span><span><i style="background:var(--warnbg);border:1px solid var(--warn)"></i>Registered in a different ward from most of the family</span><span><b style="color:var(--accent)">Strong</b> = one member names another as father/husband/mother, or two members name the same relative</span></div>
+  <div class="legend"><span>🟢 <b>Together</b> = every member registered in the same ward</span><span>🟠 <b>Split</b> = members registered in different wards</span><span><i style="background:var(--accent)"></i>Main ward (most of the family)</span><span><i style="background:var(--warnbg);border:1px solid var(--warn)"></i>Registered in a different ward from most of the family</span><span><b style="color:var(--accent)">Strong</b> = one member names another as father/husband/mother, or two members name the same relative</span></div>
   <div id="fcount" class="note"></div>
   <div id="flist"></div>
   <button class="btn more hidden" id="fmore">Show more</button>
@@ -191,22 +200,31 @@ function skTe(s){return foldTe(s).replace(/[\u0C3E-\u0C4D\u0C55\u0C56\u0C62\u0C6
 function skEn(s){const f=foldEn(s); return f? f[0]+f.slice(1).replace(/[aeiouy]/g,'').replace(/(.)\1+/g,'$1') : '';}
 function skW(s,te){ return '|'+String(s||'').split(/[\s.]+/).filter(Boolean).map(w=>te?skTe(w):skEn(w)).filter(Boolean).join('|')+'|'; }
 let D, C, HH=[], WS=[], DUP=[];
-const st={tab:'overview',bsort:'v',bmode:'linked',q:'',fw:'',fw2:'',fc:'',shown:40,dq:'',dw:'',dc:'',dshown:100,wsort:'linked',wdir:-1};
+const st={mode:'split',tab:'overview',bsort:'v',bmode:'linked',q:'',fw:'',fw2:'',fc:'',shown:40,dq:'',dw:'',dc:'',dshown:100,wsort:'linked',wdir:-1};
 
 fetch('data/wards/splits.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{D=d; C=d.cols; prep(); route(); render();})
  .catch(e=>{$('sub').textContent='Could not load data/wards/splits.json ('+e.message+'). Run scripts/analyze_splits.py and push.';});
 
 function mem(r){const o={}; C.forEach((k,i)=>o[k]=r[i]); return o;}
+const FMAP={};
+function mkFam(id,door,sur,strong,home,split,rows){
+  const m=rows.map(mem); const wards=[...new Set(m.map(x=>x.ward))].sort((a,b)=>a-b);
+  const hay=[foldTe(door),foldTe(sur),...m.map(x=>foldTe(x.name)+'|'+foldTe(x.rel_name)+'|'+foldEn(x.name_en)+'|'+x.epic.toLowerCase())].join('|');
+  const sk=[skW(sur,1),...m.map(x=>skW(x.name,1)+skW(x.rel_name,1)+skW(x.name_en))].join('');
+  return FMAP[id]={i:id,door,sur,strong:!!strong,home,split:!!split,m,wards,hay,sk};
+}
+const FAMW=new Map();   // ward -> Promise<[family]> (all families touching that ward)
+function getWardFams(w){
+  if(FAMW.has(w)) return FAMW.get(w);
+  const p=fetch(`data/wards/${w}.families.json`,{cache:'no-cache'}).then(r=>{if(!r.ok) throw new Error('HTTP '+r.status); return r.json();})
+    .then(d=>d.families.map((f,j)=>mkFam(`w${w}_${j}`,f[0],f[1],f[2],f[3],f[4],f[5])));
+  FAMW.set(w,p); p.then(v=>FAMW.set(w,v)).catch(()=>FAMW.delete(w)); return p;
+}
 function prep(){
-  HH = D.households.map((h,i)=>{
-    const m=h.m.map(mem); const wards=[...new Set(m.map(x=>x.ward))].sort((a,b)=>a-b);
-    const hay=[foldTe(h.h),foldTe(h.s),...m.map(x=>foldTe(x.name)+'|'+foldTe(x.rel_name)+'|'+foldEn(x.name_en)+'|'+x.epic.toLowerCase())].join('|');
-    const sk=[skW(h.s,1),...m.map(x=>skW(x.name,1)+skW(x.rel_name,1)+skW(x.name_en))].join('');
-    return {i,door:h.h,sur:h.s,strong:!!h.st,home:h.home,m,wards,hay,sk};
-  });
+  HH = D.households.map((h,i)=>mkFam('s'+i,h.h,h.s,h.st,h.home,1,h.m));
   DUP = D.duplicates.map((g,i)=>{const m=g.m.map(mem); return {i,m,cross:new Set(m.map(x=>x.ward)).size>1,same_door:!!g.same_door,
     hay:m.map(x=>foldTe(x.name)+'|'+foldEn(x.name_en)+'|'+x.epic.toLowerCase()+'|'+foldTe(x.house)).join('|')};});
-  const W={}; D.wards.forEach(w=>W[w.ward]={ward:w.ward,voters:w.voters,hh:0,linked:0,outside:0,dups:w.dup_entries||0});
+  const W={}; D.wards.forEach(w=>W[w.ward]={ward:w.ward,voters:w.voters,fams:w.families||0,tog:w.together||0,hh:0,linked:0,outside:0,dups:w.dup_entries||0});
   const pair={};
   for(const h of HH){
     for(const w of h.wards){ W[w].hh++; }
@@ -214,15 +232,16 @@ function prep(){
     for(let a=0;a<h.wards.length;a++) for(let b=a+1;b<h.wards.length;b++){
       const k=h.wards[a]+'-'+h.wards[b]; pair[k]=pair[k]||{a:h.wards[a],b:h.wards[b],hh:0,v:0}; pair[k].hh++; pair[k].v+=h.m.filter(x=>x.ward===h.wards[a]||x.ward===h.wards[b]).length; }
   }
-  WS=Object.values(W).map(w=>({...w,pct:w.voters?100*w.linked/w.voters:0}));
+  WS=Object.values(W).map(w=>({...w,pct:w.voters?100*w.linked/w.voters:0,spct:w.fams?100*w.hh/w.fams:0}));
   window.PAIRS=Object.values(pair).sort((x,y)=>y.hh-x.hh);
   const s=D.summary;
   $('sub').textContent=`${fmt(D.voters)} voters in ${D.generated_from} wards · as published 22-09-2026 · nothing on this page changes anyone's ward`;
   const opts=WS.map(w=>`<option value="${w.ward}">Ward ${w.ward}</option>`).join('');
   $('fw').insertAdjacentHTML('beforeend',opts); $('fw2').insertAdjacentHTML('beforeend',opts); $('dw').insertAdjacentHTML('beforeend',opts);
+  const ft=s.families_total||0, tg=s.families_together||0;
   $('kpis').innerHTML=[
-    [fmt(s.households),'Families split across wards',`${fmt(s.strong)} strong · ${fmt(s.households-s.strong)} possible`],
-    [fmt(s.voters_in_split),'Voters in those families',`${(100*s.voters_in_split/D.voters).toFixed(1)}% of all ${fmt(D.voters)} voters`],
+    [fmt(ft),'Families (2+ voters, same door & surname)',`🟢 ${fmt(tg)} together (${(100*tg/ft).toFixed(0)}%) · 🟠 ${fmt(s.households)} split (${(100*s.households/ft).toFixed(0)}%)<div class="meter" title="together vs split"><i class="t" style="flex:${tg}"></i><i class="s" style="flex:${s.households}"></i></div>`],
+    [fmt(s.households),'🟠 Families split across wards',`${fmt(s.strong)} strong · ${fmt(s.voters_in_split)} voters (${(100*s.voters_in_split/D.voters).toFixed(1)}% of all)`],
     [fmt(s.away_voters),'Registered outside the family’s main ward',`${fmt(s.no_clear_home)} more families are split evenly (no main ward)`],
     [fmt(s.duplicates),'Possible duplicate entries',`${fmt(s.duplicates_cross_ward)} across wards · ${fmt(s.duplicate_extra_entries)} extra entries`],
   ].map(([v,l,sm])=>`<div class="kpi"><b>${v}</b><span>${l}</span><small>${sm}</small></div>`).join('');
@@ -235,12 +254,12 @@ function prep(){
 function route(){
   const h=location.hash.replace('#','');
   const [tab,qs]=h.split('?'); if(['overview','families','dups'].includes(tab)) st.tab=tab;
-  const p=new URLSearchParams(qs||''); if(st.tab==='families'){ st.fw=p.get('w')||''; st.fw2=p.get('w2')||''; st.q=p.get('q')||''; st.shown=40; }
+  const p=new URLSearchParams(qs||''); if(st.tab==='families'){ st.fw=p.get('w')||''; st.fw2=p.get('w2')||''; st.q=p.get('q')||''; st.mode=p.get('m')||'split'; st.shown=40; }
   $('fw').value=st.fw; $('fw2').value=st.fw2; $('q').value=st.q;
 }
 function setHash(){
   let h='#'+st.tab;
-  if(st.tab==='families'){ const p=new URLSearchParams(); if(st.fw)p.set('w',st.fw); if(st.fw2)p.set('w2',st.fw2); if(st.q)p.set('q',st.q); const s=p.toString(); if(s)h+='?'+s; }
+  if(st.tab==='families'){ const p=new URLSearchParams(); if(st.mode!=='split')p.set('m',st.mode); if(st.fw)p.set('w',st.fw); if(st.fw2)p.set('w2',st.fw2); if(st.q)p.set('q',st.q); const s=p.toString(); if(s)h+='?'+s; }
   history.replaceState(null,'',h);
 }
 function go(tab){ st.tab=tab; setHash(); render(); window.scrollTo({top:0}); }
@@ -257,7 +276,7 @@ function render(){
 function renderBars(){
   const key=st.bmode, rows=[...WS].sort(st.bsort==='w'?(a,b)=>a.ward-b.ward:(a,b)=>b[key]-a[key]||a.ward-b.ward);
   const max=Math.max(...rows.map(r=>r[key]))||1;
-  const val=r=>key==='pct'?r.pct.toFixed(1)+'%':fmt(r[key]);
+  const val=r=>key==='pct'?r.pct.toFixed(1)+'%':key==='spct'?r.spct.toFixed(0)+'%':fmt(r[key]);
   $('bars').innerHTML=rows.map(r=>`<span class="lbl">Ward ${r.ward}</span><span class="trk" data-w="${r.ward}" tabindex="0" role="button"
      aria-label="Ward ${r.ward}: ${fmt(r.linked)} voters in ${fmt(r.hh)} split families, ${r.pct.toFixed(1)}% of ${fmt(r.voters)}"><i style="width:${(100*r[key]/max).toFixed(2)}%"></i></span><span class="val">${val(r)}</span>`).join('');
 }
@@ -268,8 +287,8 @@ function renderPairs(){
 }
 function renderWTab(){
   const k=st.wsort, d=st.wdir, rows=[...WS].sort((a,b)=>d*(a[k]-b[k])||a.ward-b.ward);
-  $('wtab').querySelector('tbody').innerHTML=rows.map(r=>`<tr data-w="${r.ward}" style="cursor:pointer"><td class="n"><a href="#families?w=${r.ward}">${r.ward}</a></td><td class="n">${fmt(r.voters)}</td>
-   <td class="n">${fmt(r.hh)}</td><td class="n">${fmt(r.linked)}</td><td class="n">${r.pct.toFixed(1)}%</td><td class="n">${fmt(r.outside)}</td><td class="n">${fmt(r.dups)}</td></tr>`).join('');
+  $('wtab').querySelector('tbody').innerHTML=rows.map(r=>`<tr data-w="${r.ward}" style="cursor:pointer"><td class="n"><a href="#families?w=${r.ward}">${r.ward}</a></td><td class="n">${fmt(r.voters)}</td><td class="n">${fmt(r.fams)}</td><td class="n">${fmt(r.tog)}</td>
+   <td class="n">${fmt(r.hh)}</td><td class="n">${r.spct.toFixed(0)}%</td><td class="n">${fmt(r.linked)}</td><td class="n">${r.pct.toFixed(1)}%</td><td class="n">${fmt(r.outside)}</td><td class="n">${fmt(r.dups)}</td></tr>`).join('');
   document.querySelectorAll('#wtab th').forEach(th=>th.textContent=th.textContent.replace(/ [▲▼]$/,'')+(th.dataset.k===k?(d<0?' ▼':' ▲'):''));
 }
 
@@ -278,7 +297,10 @@ function famResults(){
   const toks=st.q.trim().split(/\s+/).filter(Boolean).map(t=>{const te=/[\u0C00-\u0C7F]/.test(t), id=/\d/.test(t);
     return {f: te?foldTe(t):(id?t.toLowerCase().replace(/[^a-z0-9]/g,''):foldEn(t)), s: id?'':(te?skTe(t):skEn(t))};});
   const fz=$('fz').checked;
-  const R=HH.filter(h=>{
+  let base=HH;
+  if(st.mode!=='split'){ const L=FAMW.get(+st.fw); base=Array.isArray(L)?L:[]; }
+  const R=base.filter(h=>{
+    if(st.mode==='together' && h.split) return false;
     if(st.fw && !h.wards.includes(+st.fw)) return false;
     if(st.fw2 && !h.wards.includes(+st.fw2)) return false;
     if(st.fc!=='' && h.strong!==(st.fc==='1')) return false;
@@ -291,19 +313,34 @@ function famCard(h){
   const counts={}; h.m.forEach(x=>counts[x.ward]=(counts[x.ward]||0)+1);
   const chips=h.wards.map(w=>`<span class="wchip${w===h.home?' main':''}">Ward ${w} · ${counts[w]}</span>`).join(' ');
   const ms=[...h.m].sort((a,b)=>(a.ward!==h.home)-(b.ward!==h.home)||a.ward-b.ward||a.sno-b.sno).map(x=>{
-    const away=h.home!=null && x.ward!==h.home;
+    const away=h.split && h.home!=null && x.ward!==h.home;
     return `<div class="m${away?' away':''}"><div class="w">Ward ${x.ward} · S.No ${x.sno}${away?' · registered outside main ward':''}</div>
       <div class="nm te">${esc(x.name)} <span class="en">${esc(x.name_en)}</span></div>
       <div class="meta te">${REL[x.rel_type]||''} ${esc(x.rel_name)} · ${x.age} ${x.gender} · ${esc(x.house)}</div>
       <div class="meta">${esc(x.epic)} · <a href="./?ward=${x.ward}&q=${encodeURIComponent(x.epic)}" target="_blank" rel="noopener">open in search ↗</a></div></div>`;}).join('');
-  return `<div class="hh"><div class="hd"><span class="door">${esc(h.door)}</span><span class="te">${esc(h.sur)}</span>
-    <span class="badge${h.strong?' strong':''}">${h.strong?'Strong':'Possible'}</span>${chips}
-    ${h.home==null?'<span class="badge">split evenly · no main ward</span>':''}<button class="gbtn" data-g="${h.i}">Show family graph</button></div><div class="mem">${ms}</div><div class="fg hidden" id="fg${h.i}"></div></div>`;
+  const status=h.split?`<span class="badge spl">🟠 Split across ${h.wards.length} wards</span>`:`<span class="badge tog">🟢 Together · all in ward ${h.wards[0]}</span>`;
+  return `<div class="hh${h.split?' split':''}"><div class="hd"><span class="door">${esc(h.door)}</span><span class="te">${esc(h.sur)}</span>
+    ${status}<span class="badge${h.strong?' strong':''}">${h.strong?'Strong':'Possible'}</span>${h.split?chips:''}
+    ${h.split&&h.home==null?'<span class="badge">split evenly · no main ward</span>':''}<button class="gbtn" data-g="${h.i}">Show family graph</button></div><div class="mem">${ms}</div><div class="fg hidden" id="fg${h.i}"></div></div>`;
 }
 function renderFamilies(){
+  document.querySelectorAll('#fm button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.mode));
+  if(st.mode!=='split'){
+    if(!st.fw){
+      $('fcount').textContent='';
+      $('flist').innerHTML=`<p class="note">Choose a ward to see ${st.mode==='together'?'its families registered together':'all its families'} (each ward loads on its own).</p><div class="pick">${WS.map(w=>`<button data-pw="${w.ward}">Ward ${w.ward} · ${fmt(w.fams)}</button>`).join('')}</div>`;
+      $('fmore').classList.add('hidden'); return;
+    }
+    const L=FAMW.get(+st.fw);
+    if(!Array.isArray(L)){
+      $('flist').innerHTML='<p class="note">Loading ward '+esc(st.fw)+' families…</p>';
+      getWardFams(+st.fw).then(()=>renderFamilies()).catch(e=>{$('flist').innerHTML='<p class="note">Could not load ward families ('+esc(e.message)+').</p>';});
+      return;
+    }
+  }
   const R=famResults(); window.FR=R;
   const v=R.reduce((s,h)=>s+h.m.length,0), away=R.reduce((s,h)=>s+h.m.filter(x=>h.home!=null&&x.ward!==h.home).length,0);
-  const nx=R.filter(h=>h._exact).length; $('fcount').textContent=`${fmt(R.length)} families${st.q&&nx<R.length?` (${fmt(nx)} exact + ${fmt(R.length-nx)} similar spellings)`:''} · ${fmt(v)} voters · ${fmt(away)} registered outside their family's main ward`;
+  const nx=R.filter(h=>h._exact).length, ns=R.filter(h=>h.split).length; $('fcount').textContent=`${fmt(R.length)} families${st.mode==='all'?` (🟢 ${fmt(R.length-ns)} together · 🟠 ${fmt(ns)} split)`:''}${st.q&&nx<R.length?` (${fmt(nx)} exact + ${fmt(R.length-nx)} similar spellings)`:''} · ${fmt(v)} voters · ${fmt(away)} registered outside their family's main ward`;
   $('flist').innerHTML=R.slice(0,st.shown).map(famCard).join('')||'<p class="note">No families match.</p>';
   $('fmore').classList.toggle('hidden',R.length<=st.shown); $('fmore').textContent=`Show more (${fmt(R.length-st.shown)} left)`;
   document.querySelectorAll('#fc button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.fc));
@@ -405,8 +442,9 @@ function famGraph(h){
         <text class="sm" x="${p.x+8}" y="${p.y+34}">S.No ${it.sno} · ${it.age}${it.gender} · ${esc(it.epic)}</text>`; }
   return s+'</svg>';
 }
-$('flist').addEventListener('click',e=>{const b=e.target.closest('[data-g]'); if(!b) return;
-  const h=HH[+b.dataset.g], box=$('fg'+h.i); const open=box.classList.toggle('hidden')===false;
+$('flist').addEventListener('click',e=>{const pw=e.target.closest('[data-pw]'); if(pw){ st.fw=pw.dataset.pw; $('fw').value=st.fw; setHash(); renderFamilies(); return; }
+  const b=e.target.closest('[data-g]'); if(!b) return;
+  const h=FMAP[b.dataset.g], box=$('fg'+h.i); const open=box.classList.toggle('hidden')===false;
   if(open && !box.innerHTML) box.innerHTML=famGraph(h)+'<div class="note" style="margin-top:4px">Arrow = "this person names that person as భర్త/తండ్రి/తల్లి". Dashed arrow = across wards. Dashed box = a relative named by several members but not found as a voter at this door.</div>';
   b.textContent=open?'Hide family graph':'Show family graph';});
 
@@ -416,8 +454,8 @@ function csv(name,head,rows){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+[head.map(q).join(',')].concat(rows.map(r=>r.map(q).join(','))).join('\n')],{type:'text/csv'}));
   a.download=name; a.click();
 }
-$('csvF').onclick=()=>csv('split_families.csv',['Family #','Door no.','Surname','Confidence','Main ward','Wards','Ward','S.No','Name','Name (English)','Relation','Relative','Age','Gender','Voter ID','Registered outside main ward'],
-  (window.FR||[]).flatMap((h,i)=>h.m.map(x=>[i+1,h.door,h.sur,h.strong?'Strong':'Possible',h.home??'none',h.wards.join(' '),x.ward,x.sno,x.name,x.name_en,x.rel_type,x.rel_name,x.age,x.gender,x.epic,(h.home!=null&&x.ward!==h.home)?'yes':''])));
+$('csvF').onclick=()=>csv('split_families.csv',['Family #','Status','Door no.','Surname','Confidence','Main ward','Wards','Ward','S.No','Name','Name (English)','Relation','Relative','Age','Gender','Voter ID','Registered outside main ward'],
+  (window.FR||[]).flatMap((h,i)=>h.m.map(x=>[i+1,h.split?'Split':'Together',h.door,h.sur,h.strong?'Strong':'Possible',h.home??'none',h.wards.join(' '),x.ward,x.sno,x.name,x.name_en,x.rel_type,x.rel_name,x.age,x.gender,x.epic,(h.home!=null&&x.ward!==h.home)?'yes':''])));
 $('csvD').onclick=()=>csv('possible_duplicates.csv',['Group #','Ward','S.No','Name','Name (English)','Relation','Relative','Age','Gender','Door no.','Voter ID'],
   (window.DR||[]).flatMap((g,i)=>g.m.map(x=>[i+1,x.ward,x.sno,x.name,x.name_en,x.rel_type,x.rel_name,x.age,x.gender,x.house,x.epic])));
 
@@ -428,6 +466,7 @@ seg('bsort','bsort',renderBars); seg('nmin','nmin',()=>{st.nmin=+st.nmin; render
 seg('fc','fc',()=>{st.shown=40;renderFamilies();}); seg('dc','dc',()=>{st.dshown=100;renderDups();});
 let tm; $('q').oninput=e=>{clearTimeout(tm);tm=setTimeout(()=>{st.q=e.target.value;st.shown=40;setHash();renderFamilies();},150);};
 $('fz').onchange=()=>{st.shown=40;renderFamilies();};
+seg('fm','mode',()=>{st.shown=40; if(st.mode!=='split') st.fw2=''; $('fw2').value=st.fw2; setHash(); renderFamilies();});
 $('fw').onchange=e=>{st.fw=e.target.value;st.shown=40;setHash();renderFamilies();};
 $('fw2').onchange=e=>{st.fw2=e.target.value;st.shown=40;setHash();renderFamilies();};
 $('dq').oninput=e=>{clearTimeout(tm);tm=setTimeout(()=>{st.dq=e.target.value;st.dshown=100;renderDups();},150);};
