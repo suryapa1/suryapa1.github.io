@@ -28,13 +28,25 @@ def words(s):
     return {w for w in re.split(r'[\s.]+', ZW.sub('', s)) if len(w) >= 2}
 
 
+SK = re.compile(r'[\u0C3E-\u0C4D\u0C55\u0C56\u0C62\u0C63\u0C01-\u0C03]')
+
+
+def skel(w):
+    """Consonant skeleton so spelling variants meet: నెరుసు = నెర్సు = నేర్సు = నేరుసు -> నరస."""
+    return SK.sub('', w)
+
+
 def surnames(r, common):
     n, rel = words(r['name']) - common, words(r['rel_name']) - common
-    both = n & rel
-    if both:
-        return both
-    parts = [w for w in re.split(r'[\s.]+', ZW.sub('', r['name'])) if len(w) >= 2 and w not in common]
-    return {parts[0], parts[-1]} if parts else set()
+    both = {skel(w) for w in n} & {skel(w) for w in rel}
+    if not both:
+        parts = [w for w in re.split(r'[\s.]+', ZW.sub('', r['name'])) if len(w) >= 2 and w not in common]
+        both = {skel(parts[0]), skel(parts[-1])} if parts else set()
+    if r.get('rel_type') == 'Husband':     # a wife may keep her maiden surname; her husband's carries the family
+        hp = [w for w in re.split(r'[\s.]+', ZW.sub('', r['rel_name'])) if len(w) >= 2 and w not in common]
+        if len(hp) >= 2:
+            both |= {skel(hp[0]), skel(hp[-1])}
+    return {x for x in both if len(x) >= 2}
 
 
 def full_door(h):
@@ -105,7 +117,10 @@ for h, ks in byh.items():
         strong = any(a != b and (a[0] != b[0] or not split) and (rel_is(a, b) or same_rel(a, b)) for a in g for b in g)
         top = wards.most_common()
         home = top[0][0] if (len(top) == 1 or top[0][1] > top[1][1]) else None   # tie -> no clear home
-        surname = collections.Counter(x for k in g for x in fam[k]).most_common(1)
+        sk_top = collections.Counter(x for k in g for x in fam[k]).most_common(1)
+        raw = collections.Counter(w for k in g for w in (words(rows[k]['name']) | words(rows[k]['rel_name']))
+                                  if sk_top and skel(w) == sk_top[0][0])
+        surname = raw.most_common(1)
         f = dict(house=rows[g[0]]['house'], key=h, surname=surname[0][0] if surname else '',
                  strong=strong, home=home, wards=dict(wards), members=sorted(g), split=split)
         families.append(f)

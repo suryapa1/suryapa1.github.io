@@ -365,9 +365,11 @@ def write_links(out_dir):
     import glob, collections
     def nh(h): return re.sub(r'[^0-9a-z/]', '', h.lower())
     def words(s): return {w for w in re.split(r'[\s.]+', re.sub(r'[\u200b-\u200d]', '', s)) if len(w) >= 2}
+    SK = re.compile(r'[\u0C3E-\u0C4D\u0C55\u0C56\u0C62\u0C63\u0C01-\u0C03]')
+    def skel(w): return SK.sub('', w)
     rows, freq = {}, collections.Counter()
     for f in glob.glob(os.path.join(out_dir, '[0-9]*.json')):
-        if f.endswith('.links.json'):
+        if not re.fullmatch(r'\d+\.json', os.path.basename(f)):   # skip <n>.links.json / <n>.families.json
             continue
         d = json.load(open(f, encoding='utf-8')); c = d['cols']; w = d['meta']['ward']; asm = d['meta'].get('assembly_no') or 65
         for r in d['rows']:
@@ -385,7 +387,7 @@ def write_links(out_dir):
     for h, ks in byh.items():
         if len({w for w, _ in ks}) < 2:
             continue
-        fam = {k: (words(rows[k]['name']) | words(rows[k]['rel_name'])) - common for k in ks}
+        fam = {k: {skel(w) for w in (words(rows[k]['name']) | words(rows[k]['rel_name'])) - common if len(skel(w)) >= 2} for k in ks}
         for a in ks:
             for b in ks:
                 if a[0] != b[0] and fam[a] & fam[b]:
