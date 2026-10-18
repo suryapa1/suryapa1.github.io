@@ -358,6 +358,46 @@ def write_index(out_dir):
     return idx
 
 
+def write_links(out_dir):
+    """Cross-ward 'possibly related' links: same house number in another ward AND a shared
+    family-name word (common given names excluded). Written as <ward>.links.json, loaded only
+    when someone clicks a house number."""
+    import glob, collections
+    def nh(h): return re.sub(r'[^0-9a-z/]', '', h.lower())
+    def words(s): return {w for w in re.split(r'[\s.]+', re.sub(r'[\u200b-\u200d]', '', s)) if len(w) >= 2}
+    rows, freq = {}, collections.Counter()
+    for f in glob.glob(os.path.join(out_dir, '[0-9]*.json')):
+        if f.endswith('.links.json'):
+            continue
+        d = json.load(open(f, encoding='utf-8')); c = d['cols']; w = d['meta']['ward']; asm = d['meta'].get('assembly_no') or 65
+        for r in d['rows']:
+            r = dict(zip(c, r)); r['ward'] = w; r['asm'] = asm; rows[(w, r['sno'])] = r
+            for x in words(r['name']) | words(r['rel_name']):
+                freq[x] += 1
+    common = {w for w, n in freq.items() if n > 2500}
+    byh = collections.defaultdict(list)
+    for k, r in rows.items():
+        h = nh(r['house'])
+        if len(h) >= 3:
+            byh[h].append(k)
+    out = collections.defaultdict(dict)
+    keep = ['sno', 'part', 'part_sno', 'name', 'name_en', 'rel_type', 'rel_name', 'rel_en', 'age', 'gender', 'house', 'epic', 'page']
+    for h, ks in byh.items():
+        if len({w for w, _ in ks}) < 2:
+            continue
+        fam = {k: (words(rows[k]['name']) | words(rows[k]['rel_name'])) - common for k in ks}
+        for a in ks:
+            for b in ks:
+                if a[0] != b[0] and fam[a] & fam[b]:
+                    out[a[0]].setdefault(a[1], []).append([b[0]] + [rows[b][x] for x in keep] + [rows[b]['asm']])
+    for f in glob.glob(os.path.join(out_dir, '*.links.json')):
+        os.remove(f)
+    for w, m in out.items():
+        with open(os.path.join(out_dir, f'{w}.links.json'), 'w', encoding='utf-8') as fh:
+            json.dump(m, fh, ensure_ascii=False, separators=(',', ':'))
+    return sum(len(m) for m in out.values())
+
+
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('pdfs', nargs='+')
@@ -374,3 +414,5 @@ if __name__ == '__main__':
         print(f"ward {str(m['ward']):>3}  {m['counts']['total']:>5} voters  ({os.path.basename(p)})  "
               f"[scale {m['layout']['scale']}]  {status}", flush=True)
     write_index(a.out)
+    n = write_links(a.out)
+    print(f'cross-ward family links written for {n} voters')

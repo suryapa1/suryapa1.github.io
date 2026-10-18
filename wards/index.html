@@ -55,7 +55,7 @@ main{padding:14px 16px 60px}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
 @media (max-width:960px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:620px){.grid{grid-template-columns:1fr}}
-.card{background:var(--panel);border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:7px 9px 8px;display:grid;grid-template-columns:1fr 64px;gap:0 8px;font-size:13px}
+.card{background:var(--panel);border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:7px 9px 8px;display:grid;grid-template-columns:1fr 84px;gap:0 8px;font-size:13px}
 .card .top{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--line);padding-bottom:4px;margin-bottom:4px;font-size:12px;color:var(--muted)}
 .sno{display:inline-block;border:1px solid var(--ink);color:var(--ink);font-weight:600;padding:0 6px;margin-left:4px}
 .card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 6px;align-items:baseline}
@@ -63,7 +63,14 @@ main{padding:14px 16px 60px}
 .card dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .card .nm{font-weight:600}
 .en{display:block;color:var(--muted);font-size:11.5px;font-weight:400}
-.photo{border:1px solid var(--line);display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);height:74px;align-self:center;flex-direction:column;gap:2px}
+.photo{border:1px solid var(--line);display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);height:74px;flex-direction:column;gap:2px}
+.pcol{display:flex;flex-direction:column;gap:5px;align-self:center}
+.acts{display:flex;gap:4px;justify-content:center}
+.acts .slipbtn{margin:0;padding:2px 5px;font-size:12px;white-space:nowrap}
+.card .top{flex-wrap:nowrap;gap:6px;white-space:nowrap}
+.card .top>span{overflow:hidden;text-overflow:ellipsis}
+.card.other{background:var(--chip)}
+.xw{display:block;font-size:11px;color:var(--accent);font-weight:600;margin-top:1px}
 .g{font-weight:600}.g.F{color:var(--f)}.g.M{color:var(--m)}
 a.lk{color:inherit;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
 a.lk:hover{color:var(--accent)}
@@ -146,6 +153,7 @@ font:10pt/1.3 "Noto Sans Telugu",Inter,sans-serif;display:grid;grid-template-col
   <div class="tabs" role="tablist">
    <button class="tab" role="tab" aria-selected="true" data-tab="voters">Voters</button>
    <button class="tab" role="tab" aria-selected="false" data-tab="summary">Ward summary</button>
+   <a class="tab" href="families.html" style="text-decoration:none">Split families ↗</a>
    <button class="tab" id="theme" style="margin-left:auto" title="Toggle light/dark">Theme</button>
   </div>
  </div>
@@ -172,6 +180,7 @@ font:10pt/1.3 "Noto Sans Telugu",Inter,sans-serif;display:grid;grid-template-col
      <option value="all">All fields</option><option value="name">Voter name</option><option value="rel">Relative name</option>
      <option value="house">House no</option><option value="epic">Voter ID</option><option value="sno">Serial no</option></select></span>
    <span>Sort <select id="sort"><option value="sno">Serial no</option><option value="name">Name (A–Z)</option><option value="house">House no</option><option value="ageA">Age ↑</option><option value="ageD">Age ↓</option></select></span>
+   <label style="white-space:nowrap"><input type="checkbox" id="fz" checked> Similar spellings</label>
    <span class="seg" id="view"><button class="on" data-v="grid">Boxes</button><button data-v="table">Table</button></span>
   </div>
  </div>
@@ -201,6 +210,10 @@ function foldEn(s){
     .replace(/(.)\1+/g,'$1');
 }
 function foldTe(s){ return String(s).normalize('NFC').replace(/[\s.:,\-\/\u200b-\u200d]/g,'').toLowerCase(); }
+// fuzzy "skeleton": consonants only, so spelling variants meet (Nersu = Nerusu = n-r-s; నెరుసు = నేర్సు = నరస)
+function skTe(s){ return foldTe(s).replace(/[\u0C3E-\u0C4D\u0C55\u0C56\u0C62\u0C63\u0C01-\u0C03]/g,''); }
+function skEn(s){ const f=foldEn(s); return f ? f[0]+f.slice(1).replace(/[aeiouy]/g,'').replace(/(.)\1+/g,'$1') : ''; }
+function skW(s,te){ return '|'+String(s||'').split(/[\s.]+/).filter(Boolean).map(w=>te?skTe(w):skEn(w)).filter(Boolean).join('|')+'|'; }
 
 // ---------- data loading (one JSON per ward, cached) ----------
 let INDEX = null;
@@ -217,10 +230,20 @@ async function getWard(w){
   CACHE.set(w,p); p.catch(()=>CACHE.delete(w));
   return p;
 }
+const LINKS = new Map();
+function getLinks(w){
+  if(LINKS.has(w)) return LINKS.get(w);
+  const p = fetch(`data/wards/${w}.links.json?v=${wardVer(w)}`).then(r=>r.ok?r.json():{}).catch(()=>({}));
+  LINKS.set(w,p); return p;
+}
+const LCOLS = ['ward','sno','part','part_sno','name','name_en','rel_type','rel_name','rel_en','age','gender','house','epic','page','asm'];
+let XTRA = [];   // other-ward voters shown with a house
 function prep(d){
   d._f = { name: foldTe(d.name)+'|'+foldEn(d.name_en), rel: foldTe(d.rel_name)+'|'+foldEn(d.rel_en),
            house: foldTe(d.house), epic: String(d.epic).toLowerCase(), sno: ' '+d.sno+' '+d.part+'-'+d.part_sno+' ' };
   d._f.all = [d._f.name,d._f.rel,d._f.house,d._f.epic,d._f.sno,String(d.age)].join('|');
+  d._s = { name: skW(d.name,1)+skW(d.name_en), rel: skW(d.rel_name,1)+skW(d.rel_en) };
+  d._s.all = d._s.name+'|'+d._s.rel;
 }
 
 // ---------- state ----------
@@ -244,7 +267,7 @@ function writeURL(push){
 }
 
 async function openWard(w, push=true){
-  st.ward = w; st.part=''; st.exactHouse=null; writeURL(push);
+  st.ward = w; st.part=''; st.exactHouse=null; st.linked=null; XTRA=[]; writeURL(push);
   $('ward').value = w;
   if(!w){ show('home'); $('sub').textContent='Eluru Municipal Corporation · searchable voter rolls by ward'; return; }
   show('voters');
@@ -285,7 +308,8 @@ function buildParts(){
 function tokens(q){
   return q.trim().split(/\s+/).filter(Boolean).map(t=>{
     const te=/[ఀ-౿]/.test(t), num=/^\d+$/.test(t)?t:null;
-    return {te, raw:t, num, f: te?foldTe(t):(num?t:foldEn(t))};
+    const idlike = /\d/.test(t);
+    return {te, raw:t, num, f: te?foldTe(t):(num?t:foldEn(t)), s: idlike?'':(te?skTe(t):skEn(t))};
   }).filter(t=>t.f);
 }
 function matches(d,toks){
@@ -294,25 +318,31 @@ function matches(d,toks){
     if(t.num && st.field==='sno') ok = hay.includes(' '+t.num+' ') || hay.includes('-'+t.num+' ');
     else if(t.num && st.field==='all') ok = String(d.sno)===t.num || String(d.age)===t.num || hay.includes(t.f);
     else ok = hay.includes(t.f) || (!t.te && hay.includes(t.raw.toLowerCase()));
+    if(!ok && FUZZ && t.s.length>=3 && d._s[st.field] && d._s[st.field].includes('|'+t.s+'|')){ ok=true; d._fz=true; }
     if(!ok) return false;
   }
   return true;
 }
+let FUZZ = true;
 function run(){
   const toks = tokens(st.q);
-  results = DATA.filter(d=>{
+  const POOL = (st.exactHouse && XTRA.length) ? DATA.concat(XTRA) : DATA;
+  results = POOL.filter(d=>{
     if(st.part && String(d.part)!==st.part) return false;
     if(st.gen && d.gender!==st.gen) return false;
     if(st.aMin!=null && d.age<st.aMin) return false;
     if(st.aMax!=null && d.age>st.aMax) return false;
-    if(st.exactHouse!=null && (d.house!==st.exactHouse.h || d.ward!==st.exactHouse.w)) return false;
-    return toks.length ? matches(d,toks) : true;
+    if(st.exactHouse!=null && !((d.house===st.exactHouse.h && d.ward===st.exactHouse.w) || (st.linked && st.linked.includes(d.ward+':'+d.sno)))) return false;
+    d._fz=false; return toks.length ? matches(d,toks) : true;
   });
   const hk = h=>h.toLowerCase().replace(/\d+/g,n=>n.padStart(5,'0'));
   const cmp = {sno:(a,b)=>a.ward-b.ward||a.sno-b.sno, name:(a,b)=>a.name_en.localeCompare(b.name_en),
                house:(a,b)=>a.ward-b.ward||hk(a.house).localeCompare(hk(b.house))||a.sno-b.sno,
                ageA:(a,b)=>a.age-b.age||a.sno-b.sno, ageD:(a,b)=>b.age-a.age||a.sno-b.sno}[st.sort];
-  results.sort(cmp); st.shown=PAGE; render();
+  results.sort(cmp);
+  if(FUZZ && toks.length) results.sort((a,b)=>(a._fz?1:0)-(b._fz?1:0));
+  if(st.exactHouse){ const hw=st.exactHouse.w; results.sort((a,b)=>(a.ward!==hw)-(b.ward!==hw)); }
+  st.shown=PAGE; render();
 }
 function hl(text, kind){
   const toks=tokens(st.q); let out=esc(text); if(!toks.length) return out;
@@ -327,8 +357,8 @@ function hl(text, kind){
 }
 const allMode = ()=>st.ward==='all';
 function card(d){
-  return `<article class="card">
-   <div class="top"><span class="te">${allMode()?`<span class="wbadge">W${d.ward}</span>`:''}వార్డు.ఓ.జా.వ.సం.<span class="sno">${hl(String(d.sno),'en')}</span></span><span class="te">అ.ఓ.జా.వ.సం. ${d.asm} - ${d.part} - ${d.part_sno}<button class="slipbtn" data-slip="${d.ward}:${d.sno}" title="Print this voter's slip">🖨 Slip</button><button class="slipbtn" data-snap="${d.ward}:${d.sno}" title="Save / share slip as image">📷</button></span></div>
+  return `<article class="card${d._other?' other':''}">
+   <div class="top"><span class="te">${(allMode()||d._other)?`<span class="wbadge">W${d.ward}</span>`:''}వార్డు.ఓ.జా.వ.సం.<span class="sno">${hl(String(d.sno),'en')}</span></span><span class="te">అ.ఓ.జా.వ.సం. ${d.asm} - ${d.part} - ${d.part_sno}</span></div>
    <dl>
     <dt class="te">ఓటరు పేరు</dt><dd class="nm te">${hl(d.name,'te')}<span class="en">${hl(d.name_en,'en')}</span></dd>
     <dt class="te">${REL_TE[d.rel_type]||'పేరు'}</dt><dd class="te"><a class="lk" data-rel="${esc(d.rel_name)}">${hl(d.rel_name,'te')}</a><span class="en">${hl(d.rel_en,'en')}</span></dd>
@@ -336,11 +366,12 @@ function card(d){
     <dt class="te">ఇంటి సంఖ్య</dt><dd><a class="lk" data-house="${esc(d.house)}" data-w="${d.ward}" title="Show everyone at this house">${hl(d.house,'en')}</a></dd>
     <dt class="te">ఓటరు ఐడి</dt><dd class="epic">${hl(d.epic,'en')}</dd>
    </dl>
-   <div class="photo">Photo<br>Available<span style="font-size:10px">p.${d.page}</span></div>
+   <div class="pcol"><div class="photo">Photo<br>Available<span style="font-size:10px">p.${d.page}</span></div><div class="acts"><button class="slipbtn" data-slip="${d.ward}:${d.sno}" title="Print this voter's slip">🖨 Slip</button><button class="slipbtn" data-snap="${d.ward}:${d.sno}" title="Save / share slip as image">📷</button></div></div>
+   ${d._other?`<div class="xw" style="grid-column:1/-1">Same house no. in ward ${d.ward} · possibly related</div>`:''}
   </article>`;
 }
 function row(d){
-  return `<tr>${allMode()?`<td class="num">${d.ward}</td>`:''}<td class="num">${d.sno}</td><td>${d.part}-${d.part_sno}</td>
+  return `<tr${d._other?' class="other" style="background:var(--chip)"':''}>${allMode()?`<td class="num">${d.ward}</td>`:(d._other?'':'')}<td class="num">${d.sno}</td><td>${d.part}-${d.part_sno}</td>
    <td class="te">${hl(d.name,'te')}<span class="en">${hl(d.name_en,'en')}</span></td>
    <td>${d.rel_type}</td><td class="te"><a class="lk" data-rel="${esc(d.rel_name)}">${hl(d.rel_name,'te')}</a><span class="en">${hl(d.rel_en,'en')}</span></td>
    <td class="num">${d.age}</td><td><span class="g ${d.gender}">${d.gender}</span></td>
@@ -349,15 +380,16 @@ function row(d){
 function render(){
   const slice = results.slice(0, st.shown);
   const m = results.filter(d=>d.gender==='M').length, f = results.filter(d=>d.gender==='F').length;
-  let c = `<span><b>${fmt(results.length)}</b> of ${fmt(DATA.length)} voters · ${fmt(m)} male · ${fmt(f)} female`;
-  if(st.exactHouse) c += ` &nbsp;<span class="pill">House ${esc(st.exactHouse.h)}${allMode()?' (ward '+st.exactHouse.w+')':''}<button id="xh" title="Remove">×</button></span>`;
+  const nfz=results.filter(d=>d._fz).length;
+  let c = `<span><b>${fmt(results.length)}</b>${nfz?` (${fmt(results.length-nfz)} exact + ${fmt(nfz)} similar spellings)`:''} of ${fmt(DATA.length)} voters · ${fmt(m)} male · ${fmt(f)} female`;
+  if(st.exactHouse){ const nx=results.filter(d=>d.ward!==st.exactHouse.w).length; c += ` &nbsp;<span class="pill">House ${esc(st.exactHouse.h)} (ward ${st.exactHouse.w})${nx?` · +${nx} in other wards`:''}<button id="xh" title="Remove">×</button></span>`; }
   $('count').innerHTML = c+'</span>';
   if(!results.length) $('out').innerHTML = `<div class="empty">No voters match in ${allMode()?'any ward':'ward '+esc(st.ward)}. Try fewer words${allMode()?'':', or choose “All wards”'}.</div>`;
   else if(st.view==='grid') $('out').innerHTML = `<div class="grid">${slice.map(card).join('')}</div>`;
   else $('out').innerHTML = `<div class="tblwrap"><table><thead><tr>${allMode()?'<th class="num">Ward</th>':''}<th class="num">S.No</th><th>Part-S.No</th><th>Name</th><th>Relation</th><th>Relative</th><th class="num">Age</th><th>Sex</th><th>House no</th><th>Voter ID</th><th class="num">Page</th><th></th></tr></thead><tbody>${slice.map(row).join('')}</tbody></table></div>`;
   $('more').classList.toggle('hidden', results.length<=st.shown);
   $('more').textContent = `Show more (${fmt(results.length-st.shown)} left)`;
-  const xh=$('xh'); if(xh) xh.onclick=()=>{st.exactHouse=null; run();};
+  const xh=$('xh'); if(xh) xh.onclick=()=>{st.exactHouse=null; st.linked=null; XTRA=[]; run();};
   document.querySelectorAll('#view button').forEach(b=>b.classList.toggle('on', b.dataset.v===st.view));
 }
 
@@ -450,8 +482,8 @@ function renderSummary(){
 
 // ---------- wiring ----------
 let tmr;
-$('q').addEventListener('input',()=>{clearTimeout(tmr); tmr=setTimeout(()=>{st.q=$('q').value; st.exactHouse=null; writeURL(false); run();},120);});
-$('clear').onclick=()=>{$('q').value='';st.q='';st.exactHouse=null;st.part='';st.gen='';st.aMin=st.aMax=null;
+$('q').addEventListener('input',()=>{clearTimeout(tmr); tmr=setTimeout(()=>{st.q=$('q').value; st.exactHouse=null; st.linked=null; XTRA=[]; writeURL(false); run();},120);});
+$('clear').onclick=()=>{$('q').value='';st.q='';st.exactHouse=null;st.linked=null;XTRA=[];st.part='';st.gen='';st.aMin=st.aMax=null;
   $('aMin').value=$('aMax').value='';
   ['fPart','fGen'].forEach(id=>document.querySelectorAll('#'+id+' button').forEach((b,i)=>b.classList.toggle('on',i===0)));
   writeURL(false); run(); $('q').focus();};
@@ -460,18 +492,35 @@ function seg(id,key){document.querySelectorAll('#'+id+' button').forEach(b=>b.on
   if(key==='view'){ try{localStorage.setItem('eluruView',st.view);}catch(e){} render(); } else run(); });}
 seg('fGen','gen'); seg('view','view');
 ['aMin','aMax'].forEach(id=>$(id).addEventListener('input',e=>{const v=e.target.value; st[id]=v===''?null:+v; run();}));
+$('fz').onchange=e=>{FUZZ=e.target.checked; run();};
 $('fField').onchange=e=>{st.field=e.target.value; run();};
 $('sort').onchange=e=>{st.sort=e.target.value; run();};
 $('more').onclick=()=>{st.shown+=PAGE*2; render();};
 $('ward').onchange=e=>openWard(e.target.value);
 $('out').addEventListener('click',e=>{
   const sn=e.target.closest('[data-snap]');
-  if(sn){ const [w,s]=sn.dataset.snap.split(':'); const d=DATA.find(x=>String(x.ward)===w && String(x.sno)===s); if(d) snapSlip(d, sn); return; }
+  if(sn){ const [w,s]=sn.dataset.snap.split(':'); const d=DATA.concat(XTRA).find(x=>String(x.ward)===w && String(x.sno)===s); if(d) snapSlip(d, sn); return; }
   const sb=e.target.closest('[data-slip]');
-  if(sb){ const [w,s]=sb.dataset.slip.split(':'); const d=DATA.find(x=>String(x.ward)===w && String(x.sno)===s); if(d) printSlips([d]); return; }
+  if(sb){ const [w,s]=sb.dataset.slip.split(':'); const d=DATA.concat(XTRA).find(x=>String(x.ward)===w && String(x.sno)===s); if(d) printSlips([d]); return; }
   const a=e.target.closest('a.lk'); if(!a) return;
-  if(a.dataset.house!=null){ st.exactHouse={h:a.dataset.house,w:+a.dataset.w}; $('q').value=''; st.q=''; st.sort='sno'; $('sort').value='sno'; writeURL(false); run(); }
-  else if(a.dataset.rel!=null){ $('q').value=a.dataset.rel; st.q=a.dataset.rel; st.exactHouse=null; $('fField').value='all'; st.field='all'; writeURL(false); run(); }
+  if(a.dataset.house!=null){
+    st.exactHouse={h:a.dataset.house,w:+a.dataset.w}; $('q').value=''; st.q=''; st.sort='sno'; $('sort').value='sno'; writeURL(false);
+    XTRA=[]; run();
+    const hw=+a.dataset.w, hh=a.dataset.house;
+    getLinks(hw).then(L=>{
+      if(!st.exactHouse || st.exactHouse.h!==hh || st.exactHouse.w!==hw) return;
+      const here = DATA.filter(d=>d.ward===hw && d.house===hh);
+      const out=[], got=new Set();
+      for(const d of here) for(const r of (L[d.sno]||[])){
+        const o={}; LCOLS.forEach((k,i)=>o[k]=r[i]); const key=o.ward+':'+o.sno;
+        if(got.has(key)) continue; got.add(key);
+        if(allMode()) continue;               // already in DATA, picked up by the house filter below
+        o._other=true; prep(o); out.push(o);
+      }
+      XTRA=out; st.linked=[...got]; run();
+    });
+  }
+  else if(a.dataset.rel!=null){ $('q').value=a.dataset.rel; st.q=a.dataset.rel; st.exactHouse=null; st.linked=null; XTRA=[]; $('fField').value='all'; st.field='all'; writeURL(false); run(); }
   window.scrollTo({top:$('voters').offsetTop-4,behavior:'smooth'});
 });
 $('summary').addEventListener('click',e=>{
