@@ -213,6 +213,17 @@ function mkFam(id,door,sur,strong,home,split,rows){
   const sk=[skW(sur,1),...m.map(x=>skW(x.name,1)+skW(x.rel_name,1)+skW(x.name_en))].join('');
   return FMAP[id]={i:id,door,sur,strong:!!strong,home,split:!!split,m,wards,hay,sk};
 }
+let ALLF=null, ALLP=null;
+function getAllFams(onProgress){
+  if(ALLF) return Promise.resolve(ALLF);
+  if(ALLP) return ALLP;
+  let done=0; const seen=new Set(), out=[];
+  ALLP=Promise.all(WS.map(w=>getWardFams(w.ward).then(L=>{ done++; onProgress&&onProgress(done,WS.length); return L; })))
+    .then(lists=>{ for(const L of lists) for(const f of L){ const k=f.m.map(x=>x.ward+':'+x.sno).sort().join(','); if(!seen.has(k)){ seen.add(k); out.push(f); } }
+      ALLF=out; return out; })
+    .catch(e=>{ ALLP=null; throw e; });
+  return ALLP;
+}
 const FAMW=new Map();   // ward -> Promise<[family]> (all families touching that ward)
 function getWardFams(w){
   if(FAMW.has(w)) return FAMW.get(w);
@@ -298,7 +309,7 @@ function famResults(){
     return {f: te?foldTe(t):(id?t.toLowerCase().replace(/[^a-z0-9]/g,''):foldEn(t)), s: id?'':(te?skTe(t):skEn(t))};});
   const fz=$('fz').checked;
   let base=HH;
-  if(st.mode!=='split'){ const L=FAMW.get(+st.fw); base=Array.isArray(L)?L:[]; }
+  if(st.mode!=='split'){ const L=st.fw?FAMW.get(+st.fw):ALLF; base=Array.isArray(L)?L:[]; }
   const R=base.filter(h=>{
     if(st.mode==='together' && h.split) return false;
     if(st.fw && !h.wards.includes(+st.fw)) return false;
@@ -326,12 +337,20 @@ function famCard(h){
 function renderFamilies(){
   document.querySelectorAll('#fm button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.mode));
   if(st.mode!=='split'){
-    if(!st.fw){
+    if(!st.fw && !st.q.trim()){
       $('fcount').textContent='';
-      $('flist').innerHTML=`<p class="note">Choose a ward to see ${st.mode==='together'?'its families registered together':'all its families'} (each ward loads on its own).</p><div class="pick">${WS.map(w=>`<button data-pw="${w.ward}">Ward ${w.ward} · ${fmt(w.fams)}</button>`).join('')}</div>`;
+      $('flist').innerHTML=`<p class="note"><b>Type a name, surname, door no. or voter ID above to search all 62 wards</b>, or choose a ward to browse ${st.mode==='together'?'its families registered together':'all its families'}.</p><div class="pick">${WS.map(w=>`<button data-pw="${w.ward}">Ward ${w.ward} · ${fmt(w.fams)}</button>`).join('')}</div>`;
       $('fmore').classList.add('hidden'); return;
     }
-    const L=FAMW.get(+st.fw);
+    if(!st.fw){
+      if(!ALLF){
+        $('flist').innerHTML='<p class="note" id="allprog">Loading families from all 62 wards… (first search only)</p>'; $('fmore').classList.add('hidden');
+        getAllFams((d,n)=>{const e=$('allprog'); if(e) e.textContent=`Loading families from all wards… ${d}/${n}`;})
+          .then(()=>renderFamilies()).catch(e=>{$('flist').innerHTML='<p class="note">Could not load families ('+esc(e.message)+').</p>';});
+        return;
+      }
+    }
+    const L=st.fw?FAMW.get(+st.fw):ALLF;
     if(!Array.isArray(L)){
       $('flist').innerHTML='<p class="note">Loading ward '+esc(st.fw)+' families…</p>';
       getWardFams(+st.fw).then(()=>renderFamilies()).catch(e=>{$('flist').innerHTML='<p class="note">Could not load ward families ('+esc(e.message)+').</p>';});
