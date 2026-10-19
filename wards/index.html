@@ -93,6 +93,16 @@ td.num,th.num{text-align:right}
 tfoot td{font-weight:600;background:var(--soft)}
 .note{color:var(--muted);font-size:12.5px;margin-top:10px}
 .hidden{display:none!important}
+.tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{white-space:nowrap}
+.dgrp{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;margin:10px 0;padding:10px 12px}
+.dgrp.sub{border-left-color:var(--line)}
+.dgrp h3{margin:0 0 6px;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dgrp h3 .btn{margin-left:auto;padding:3px 9px;font-size:12.5px}
+.drow{display:grid;grid-template-columns:52px 1fr auto;gap:2px 10px;padding:6px 0;border-top:1px dashed var(--line);align-items:center;font-size:13.5px}
+.drow:first-of-type{border-top:0}
+.drow .sn{font-weight:600;border:1px solid var(--ink);text-align:center;border-radius:4px;padding:1px 0}
+.drow .en{font-size:12px;color:var(--muted)}
+.drow .meta{font-size:12px;color:var(--muted)}
 @media (max-width:620px){.controls{position:static}}
 
 .wardbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
@@ -152,6 +162,7 @@ font:10pt/1.3 "Noto Sans Telugu",Inter,sans-serif;display:grid;grid-template-col
   </div>
   <div class="tabs" role="tablist">
    <button class="tab" role="tab" aria-selected="true" data-tab="voters">Voters</button>
+   <button class="tab" role="tab" aria-selected="false" data-tab="doors">🏠 <span class="te">ఇంటి సంఖ్య</span> · Door</button>
    <button class="tab" role="tab" aria-selected="false" data-tab="summary">Ward summary</button>
    <a class="tab" href="families.html" style="text-decoration:none">Split families ↗</a>
    <button class="tab" id="theme" style="margin-left:auto" title="Toggle light/dark">Theme</button>
@@ -189,6 +200,16 @@ font:10pt/1.3 "Noto Sans Telugu",Inter,sans-serif;display:grid;grid-template-col
  <button class="btn primary more hidden" id="more">Show more</button>
 </section>
 
+<section id="doors" class="hidden">
+ <div class="controls">
+  <div class="searchrow">
+   <input id="dq" type="search" inputmode="text" autocomplete="off" placeholder="Door no. — e.g. 16A-8-3 or 7 20 1  (ఇంటి సంఖ్య)">
+   <button class="btn" id="dclear">Clear</button>
+  </div>
+  <div class="note" id="dhint" style="margin:6px 0 0">Shows everyone registered at that door, door by door. Sub-doors (like /1, /A) are listed separately below.</div>
+ </div>
+ <div id="dout"></div>
+</section>
 <section id="summary" class="sum hidden"></section>
 </main>
 
@@ -288,7 +309,7 @@ async function openWard(w, push=true){
       const m = META;
       $('sub').textContent = `Ward ${m.ward} · Assembly ${m.assembly||m.assembly_no} · Parts ${partsTxt(m.parts)} · Published ${m.published} · Ages as of ${m.age_as_of} · ${fmt(m.counts.total)} voters`;
     }
-    buildParts(); renderSummary(); run();
+    buildParts(); renderSummary(); run(); renderDoors();
   }catch(e){
     $('out').innerHTML = `<div class="empty">Couldn't load ward ${esc(w)} (${esc(e.message)}). Check the ward number, or pick one from the list.</div>`;
   }
@@ -298,6 +319,8 @@ function show(which){
   const tab = document.querySelector('.tab[aria-selected="true"]').dataset.tab;
   $('voters').classList.toggle('hidden', which==='home' || tab!=='voters');
   $('summary').classList.toggle('hidden', which==='home' || tab!=='summary');
+  $('doors').classList.toggle('hidden', which==='home' || tab!=='doors');
+  if(which!=='home' && tab==='doors') renderDoors();
 }
 function buildParts(){
   const parts = [...new Set(DATA.map(d=>d.part))].sort((a,b)=>a-b);
@@ -358,7 +381,7 @@ function run(){
     if(st.gen && d.gender!==st.gen) return false;
     if(st.aMin!=null && d.age<st.aMin) return false;
     if(st.aMax!=null && d.age>st.aMax) return false;
-    if(st.exactHouse!=null && !((d.house===st.exactHouse.h && d.ward===st.exactHouse.w) || (st.linked && st.linked.includes(d.ward+':'+d.sno)))) return false;
+    if(st.exactHouse!=null && !((d._hs===st.exactHouse.hs && d.ward===st.exactHouse.w) || (st.linked && st.linked.includes(d.ward+':'+d.sno)))) return false;
     d._fz=false; d._sc=0; return toks.length ? matches(d,toks) : true;
   });
   const hk = h=>h.toLowerCase().replace(/\d+/g,n=>n.padStart(5,'0'));
@@ -367,6 +390,11 @@ function run(){
                ageA:(a,b)=>a.age-b.age||a.sno-b.sno, ageD:(a,b)=>b.age-a.age||a.sno-b.sno}[st.sort];
   results.sort(cmp);
   if(toks.length) results.sort((a,b)=>(b._sc||0)-(a._sc||0));   // best match first (exact door / serial / name on top)
+  st.door=null;
+  if(toks.length===1 && toks[0].type==='door' && !st.exactHouse){
+    const q=toks[0].seg, exact=results.filter(d=>d._hs===q);
+    if(exact.length){ st.door={label:toks[0].raw, n:exact.length, extra:results.length-exact.length}; if(!st.doorAll) results=exact; }
+  }
   if(st.exactHouse){ const hw=st.exactHouse.w; results.sort((a,b)=>(a.ward!==hw)-(b.ward!==hw)); }
   st.shown=PAGE; render();
 }
@@ -408,6 +436,11 @@ function render(){
   const m = results.filter(d=>d.gender==='M').length, f = results.filter(d=>d.gender==='F').length;
   const nfz=results.filter(d=>d._fz).length;
   let c = `<span><b>${fmt(results.length)}</b>${nfz?` (${fmt(results.length-nfz)} exact + ${fmt(nfz)} similar spellings)`:''} of ${fmt(DATA.length)} voters · ${fmt(m)} male · ${fmt(f)} female`;
+  if(st.door){
+    c += ` &nbsp;<span class="pill" style="padding-right:10px">🏠 Door ${esc(st.door.label)} · ${st.door.n} voter${st.door.n>1?'s':''}${allMode()?'':' in ward '+esc(st.ward)}</span>`;
+    if(st.door.extra) c += ` <button class="btn" id="doorAll" style="padding:3px 9px">${st.doorAll?'Only this door':`+${st.door.extra} at sub-doors (${esc(st.door.label)}/…)`}</button>`;
+    if(!allMode()) c += ` <button class="btn" id="doorFam" style="padding:3px 9px" title="Also show relatives at this door registered in other wards">👪 Family incl. other wards</button>`;
+  }
   if(st.exactHouse){ const nx=results.filter(d=>d.ward!==st.exactHouse.w).length; c += ` &nbsp;<span class="pill">House ${esc(st.exactHouse.h)} (ward ${st.exactHouse.w})${nx?` · +${nx} in other wards`:''}<button id="xh" title="Remove">×</button></span>`; }
   $('count').innerHTML = c+'</span>';
   if(!results.length) $('out').innerHTML = `<div class="empty">No voters match in ${allMode()?'any ward':'ward '+esc(st.ward)}. Try fewer words${allMode()?'':', or choose “All wards”'}.</div>`;
@@ -415,6 +448,9 @@ function render(){
   else $('out').innerHTML = `<div class="tblwrap"><table><thead><tr>${allMode()?'<th class="num">Ward</th>':''}<th class="num">S.No</th><th>Part-S.No</th><th>Name</th><th>Relation</th><th>Relative</th><th class="num">Age</th><th>Sex</th><th>House no</th><th>Voter ID</th><th class="num">Page</th><th></th></tr></thead><tbody>${slice.map(row).join('')}</tbody></table></div>`;
   $('more').classList.toggle('hidden', results.length<=st.shown);
   $('more').textContent = `Show more (${fmt(results.length-st.shown)} left)`;
+  const da=$('doorAll'); if(da) da.onclick=()=>{ st.doorAll=!st.doorAll; run(); };
+  const df=$('doorFam'); if(df) df.onclick=()=>{ const d0=results.find(d=>d._hs===doorSegs(st.door.label)); if(!d0) return;
+    const f=document.createElement('a'); f.className='lk'; f.dataset.house=d0.house; f.dataset.w=d0.ward; f.style.display='none'; $('out').appendChild(f); f.click(); f.remove(); };
   const xh=$('xh'); if(xh) xh.onclick=()=>{st.exactHouse=null; st.linked=null; XTRA=[]; run();};
   document.querySelectorAll('#view button').forEach(b=>b.classList.toggle('on', b.dataset.v===st.view));
 }
@@ -482,6 +518,40 @@ async function snapSlip(d, btn){
   finally{ if(btn) btn.textContent=old; }
 }
 
+// ---------- 🏠 door tab: everyone at a door, grouped door by door ----------
+let DQ='';
+function renderDoors(){
+  const out=$('dout'); if(!out) return;
+  const raw=DQ.trim();
+  if(!raw){ out.innerHTML=`<p class="note">Type a door number above${allMode()?' (tip: pick a ward first — the same door number exists in many wards)':''}.</p>`; return; }
+  const parts=raw.split(/\s+/); const qs=doorSegs(parts.length>1 && parts.every(p=>/^[0-9a-z]{1,5}$/i.test(p)) ? parts.join('-') : raw).trim();
+  if(!qs){ out.innerHTML=''; return; }
+  const hits=DATA.filter(d=>d._hs.includes(' '+qs+' '));
+  if(!hits.length){ out.innerHTML=`<p class="note">No voters at door <b>${esc(raw)}</b> in ${allMode()?'any ward':'ward '+esc(st.ward)}. Check the number, or try fewer parts (e.g. 16A-8).</p>`; return; }
+  const groups=new Map();
+  for(const d of hits){ const k=d.ward+'|'+d._hs; if(!groups.has(k)) groups.set(k,{ward:d.ward,hs:d._hs,label:d.house,rows:[]}); groups.get(k).rows.push(d); }
+  const G=[...groups.values()].map(g=>({...g,exact:g.hs.trim()===qs, starts:g.hs.startsWith(' '+qs+' ')}))
+    .sort((a,b)=>(b.exact-a.exact)||(b.starts-a.starts)||a.ward-b.ward||a.hs.localeCompare(b.hs,undefined,{numeric:true}));
+  G.forEach(g=>g.rows.sort((a,b)=>a.sno-b.sno));
+  const total=hits.length, exactN=G.filter(g=>g.exact).reduce((s,g)=>s+g.rows.length,0);
+  window.DOORG=G;
+  out.innerHTML=`<p class="note"><b>${fmt(exactN)}</b> voter${exactN===1?'':'s'} at door <b>${esc(raw)}</b>${total>exactN?` · ${fmt(total-exactN)} more at sub-doors / similar numbers below`:''}</p>`+
+    G.slice(0,60).map((g,gi)=>`<div class="dgrp${g.exact?'':' sub'}"><h3>🏠 ${esc(g.label)} <span class="note" style="margin:0">· ${allMode()?'ward '+g.ward+' · ':''}${g.rows.length} voter${g.rows.length>1?'s':''}</span>
+       <button class="btn" data-dprint="${gi}">🖨 Print slips (${g.rows.length})</button></h3>
+       ${g.rows.map(d=>`<div class="drow"><span class="sn">${d.sno}</span>
+         <span><span class="te"><b>${esc(d.name)}</b></span> <span class="en">${esc(d.name_en)}</span><br>
+           <span class="meta te">${(REL_TE[d.rel_type]||'').replace(' పేరు','')} ${esc(d.rel_name)} · ${d.age} ${d.gender} · ${esc(d.epic)}</span></span>
+         <span style="white-space:nowrap"><button class="slipbtn" data-slip="${d.ward}:${d.sno}" title="Print slip">🖨</button><button class="slipbtn" data-snap="${d.ward}:${d.sno}" title="Slip image">📷</button></span></div>`).join('')}
+     </div>`).join('') + (G.length>60?`<p class="note">Showing the first 60 doors — type more of the number to narrow down.</p>`:'');
+}
+$('dq').addEventListener('input',()=>{clearTimeout(tmr); tmr=setTimeout(()=>{DQ=$('dq').value; renderDoors();},150);});
+$('dclear').onclick=()=>{ $('dq').value=''; DQ=''; renderDoors(); $('dq').focus(); };
+$('dout').addEventListener('click',e=>{
+  const pb=e.target.closest('[data-dprint]'); if(pb){ printSlips(window.DOORG[+pb.dataset.dprint].rows); return; }
+  const sn=e.target.closest('[data-snap]'); if(sn){ const [w,s]=sn.dataset.snap.split(':'); const d=DATA.find(x=>String(x.ward)===w&&String(x.sno)===s); if(d) snapSlip(d,sn); return; }
+  const sb=e.target.closest('[data-slip]'); if(sb){ const [w,s]=sb.dataset.slip.split(':'); const d=DATA.find(x=>String(x.ward)===w&&String(x.sno)===s); if(d) printSlips([d]); }
+});
+
 // ---------- summary ----------
 function renderSummary(){
   const el = $('summary');
@@ -508,7 +578,7 @@ function renderSummary(){
 
 // ---------- wiring ----------
 let tmr;
-$('q').addEventListener('input',()=>{clearTimeout(tmr); tmr=setTimeout(()=>{st.q=$('q').value; st.exactHouse=null; st.linked=null; XTRA=[]; writeURL(false); run();},120);});
+$('q').addEventListener('input',()=>{clearTimeout(tmr); tmr=setTimeout(()=>{st.q=$('q').value; st.doorAll=false; st.exactHouse=null; st.linked=null; XTRA=[]; writeURL(false); run();},120);});
 $('clear').onclick=()=>{$('q').value='';st.q='';st.exactHouse=null;st.linked=null;XTRA=[];st.part='';st.gen='';st.aMin=st.aMax=null;
   $('aMin').value=$('aMax').value='';
   ['fPart','fGen'].forEach(id=>document.querySelectorAll('#'+id+' button').forEach((b,i)=>b.classList.toggle('on',i===0)));
@@ -530,12 +600,12 @@ $('out').addEventListener('click',e=>{
   if(sb){ const [w,s]=sb.dataset.slip.split(':'); const d=DATA.concat(XTRA).find(x=>String(x.ward)===w && String(x.sno)===s); if(d) printSlips([d]); return; }
   const a=e.target.closest('a.lk'); if(!a) return;
   if(a.dataset.house!=null){
-    st.exactHouse={h:a.dataset.house,w:+a.dataset.w}; $('q').value=''; st.q=''; st.sort='sno'; $('sort').value='sno'; writeURL(false);
+    st.exactHouse={h:a.dataset.house,hs:doorSegs(a.dataset.house),w:+a.dataset.w}; $('q').value=''; st.q=''; st.sort='sno'; $('sort').value='sno'; writeURL(false);
     XTRA=[]; run();
     const hw=+a.dataset.w, hh=a.dataset.house;
     getLinks(hw).then(L=>{
       if(!st.exactHouse || st.exactHouse.h!==hh || st.exactHouse.w!==hw) return;
-      const here = DATA.filter(d=>d.ward===hw && d.house===hh);
+      const hs2=doorSegs(hh); const here = DATA.filter(d=>d.ward===hw && d._hs===hs2);
       const out=[], got=new Set();
       for(const d of here) for(const r of (L[d.sno]||[])){
         const o={}; LCOLS.forEach((k,i)=>o[k]=r[i]); const key=o.ward+':'+o.sno;
